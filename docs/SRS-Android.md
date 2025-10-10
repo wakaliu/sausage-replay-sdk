@@ -342,8 +342,8 @@ enum class RecordingStatus { IDLE, RECORDING, PAUSED, STOPPING }
 ### 11.2 Proguard/R8 规则
 ```pro
 # 保留对外API，避免混淆
--keep class com.sausage.replay.** { *; }
--dontwarn com.sausage.replay.**
+-keep class com.funny.replaysdk.** { *; }
+-dontwarn com.funny.replaysdk.**
 
 # 若使用反射或ServiceLoader，需补充keep
 ```
@@ -358,9 +358,9 @@ using UnityEngine;
 
 public class ReplayBridge
 {
-    private const string SdkClass = "com.sausage.replay.SausageReplayAndroidSDK";
-    private const string PermClass = "com.sausage.replay.PermissionManager";
-    private const string RecClass = "com.sausage.replay.RecordingManager";
+    private const string SdkClass = "com.funny.replaysdk.SausageReplayAndroidSDK";
+    private const string PermClass = "com.funny.replaysdk.PermissionManager";
+    private const string RecClass = "com.funny.replaysdk.RecordingManager";
 
     public static bool Initialize()
     {
@@ -386,7 +386,7 @@ public class ReplayBridge
     private class PermissionCallbackProxy : AndroidJavaProxy
     {
         private readonly System.Action<bool,int,string> _cb;
-        public PermissionCallbackProxy(System.Action<bool,int,string> cb) : base("com.sausage.replay.IPermissionCallback")
+        public PermissionCallbackProxy(System.Action<bool,int,string> cb) : base("com.funny.replaysdk.IPermissionCallback")
         { _cb = cb; }
         public void onResult(bool granted, int errorCode, string message) { _cb?.Invoke(granted, errorCode, message); }
     }
@@ -395,7 +395,7 @@ public class ReplayBridge
 
 ### 12.2 Kotlin 回调接口示例
 ```kotlin
-package com.sausage.replay
+package com.funny.replaysdk
 
 interface IPermissionCallback {
     fun onResult(granted: Boolean, errorCode: Int, message: String?)
@@ -449,7 +449,7 @@ interface IPermissionCallback {
 ---
 
 ## 18. 开发清单（实施提示）
-- 包结构：`com.sausage.replay.*`
+- 包结构：`com.funny.replaysdk.*`
 - 关键类：`SausageReplayAndroidSDK`, `PermissionManager`, `RecordingManager`, `FileManager`。
 - 单元测试：参数校验、错误码映射、状态机切换。
 - 集成示例：提供最小Unity工程调用样例。
