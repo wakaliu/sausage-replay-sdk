@@ -1,0 +1,198 @@
+{
+  "version": "1.0.0",
+  "deviceTiers": {
+    "LOW_END": {
+      "name": "低端机",
+      "maxResolution": {
+        "width": 854,
+        "height": 480
+      },
+      "targetFps": {
+        "min": 25,
+        "max": 30,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 1500000,
+        "max": 3000000,
+        "default": 2000000
+      },
+      "audioBitrate": {
+        "min": 96000,
+        "max": 128000,
+        "default": 96000
+      },
+      "audioSampleRate": 44100,
+      "keyFrameInterval": 4,
+      "encodingProfile": "BASELINE",
+      "bufferDepth": 3,
+      "threadCount": 2,
+      "gifStrategy": {
+        "enabled": false,
+        "maxFps": 8,
+        "maxResolution": {
+          "width": 854,
+          "height": 480
+        },
+        "maxDurationSeconds": 10
+      },
+      "ioStrategy": "SERIAL_SMALL_BUFFER",
+      "logLevel": "WARN",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "MID_RANGE": {
+      "name": "中端机",
+      "maxResolution": {
+        "width": 1280,
+        "height": 720
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 30,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 3000000,
+        "max": 6000000,
+        "default": 4000000
+      },
+      "audioBitrate": {
+        "min": 96000,
+        "max": 128000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 2,
+      "encodingProfile": "MAIN",
+      "bufferDepth": 6,
+      "threadCount": 3,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 10,
+        "maxResolution": {
+          "width": 1280,
+          "height": 720
+        },
+        "maxDurationSeconds": 15
+      },
+      "ioStrategy": "SERIAL_MEDIUM_BUFFER",
+      "logLevel": "INFO",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "HIGH_END": {
+      "name": "高端机",
+      "maxResolution": {
+        "width": 1920,
+        "height": 1080
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 30,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 6000000,
+        "max": 10000000,
+        "default": 8000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 128000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 2,
+      "encodingProfile": "MAIN",
+      "bufferDepth": 10,
+      "threadCount": 4,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 12,
+        "maxResolution": {
+          "width": 1920,
+          "height": 1080
+        },
+        "maxDurationSeconds": 20
+      },
+      "ioStrategy": "ASYNC_DOUBLE_BUFFER",
+      "logLevel": "DEBUG",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "FLAGSHIP": {
+      "name": "旗舰机",
+      "maxResolution": {
+        "width": 1920,
+        "height": 1080
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 60,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 8000000,
+        "max": 12000000,
+        "default": 10000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 128000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 14,
+      "threadCount": 6,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 15,
+        "maxResolution": {
+          "width": 1920,
+          "height": 1080
+        },
+        "maxDurationSeconds": 30
+      },
+      "ioStrategy": "ASYNC_DOUBLE_BUFFER",
+      "logLevel": "DEBUG",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    }
+  },
+  "adaptiveStrategies": {
+    "bitrateReduction": {
+      "step": 0.15,
+      "minReduction": 0.1,
+      "maxReduction": 0.3
+    },
+    "resolutionDegradation": {
+      "steps": [
+        {"width": 1920, "height": 1080},
+        {"width": 1280, "height": 720},
+        {"width": 854, "height": 480}
+      ]
+    },
+    "fpsDegradation": {
+      "steps": [60, 30, 25, 20]
+    }
+  }
+}
