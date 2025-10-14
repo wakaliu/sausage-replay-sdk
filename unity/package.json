@@ -1,0 +1,43 @@
+{
+  "name": "com.funny.sausage-replay-sdk",
+  "version": "1.0.0",
+  "displayName": "Sausage Replay SDK",
+  "description": "Android屏幕录制SDK的Unity集成插件，提供高质量的屏幕录制功能，支持暂停/恢复、格式转换、设备档位自适应等高级特性。",
+  "unity": "2022.3",
+  "keywords": [
+    "recording",
+    "screen-capture",
+    "android",
+    "video",
+    "replay"
+  ],
+  "author": {
+    "name": "Funny Games",
+    "email": "support@funnygames.com",
+    "url": "https://www.funnygames.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Recording Example",
+      "description": "基础录制功能示例，展示如何使用SDK进行屏幕录制。",
+      "path": "Samples~/BasicRecording"
+    },
+    {
+      "displayName": "Advanced Features Example",
+      "description": "高级功能示例，包括格式转换、性能监控、设备档位管理等。",
+      "path": "Samples~/AdvancedFeatures"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/funnygames/sausage-replay-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/funnygames/sausage-replay-sdk/issues"
+  },
+  "homepage": "https://github.com/funnygames/sausage-replay-sdk#readme"
+}
