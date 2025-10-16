@@ -4,8 +4,8 @@
     "LOW_END": {
       "name": "低端机",
       "maxResolution": {
-        "width": 854,
-        "height": 480
+        "width": 1280,
+        "height": 720
       },
       "targetFps": {
         "min": 25,
@@ -13,18 +13,18 @@
         "default": 30
       },
       "videoBitrate": {
-        "min": 1500000,
-        "max": 3000000,
-        "default": 2000000
+        "min": 4000000,
+        "max": 6000000,
+        "default": 5000000
       },
       "audioBitrate": {
-        "min": 96000,
-        "max": 128000,
-        "default": 96000
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
       },
       "audioSampleRate": 44100,
-      "keyFrameInterval": 4,
-      "encodingProfile": "BASELINE",
+      "keyFrameInterval": 2,
+      "encodingProfile": "MAIN",
       "bufferDepth": 3,
       "threadCount": 2,
       "gifStrategy": {
@@ -48,8 +48,8 @@
     "MID_RANGE": {
       "name": "中端机",
       "maxResolution": {
-        "width": 1280,
-        "height": 720
+        "width": 1920,
+        "height": 1080
       },
       "targetFps": {
         "min": 30,
@@ -57,18 +57,18 @@
         "default": 30
       },
       "videoBitrate": {
-        "min": 3000000,
-        "max": 6000000,
-        "default": 4000000
+        "min": 8000000,
+        "max": 12000000,
+        "default": 10000000
       },
       "audioBitrate": {
-        "min": 96000,
-        "max": 128000,
+        "min": 128000,
+        "max": 192000,
         "default": 128000
       },
       "audioSampleRate": 48000,
-      "keyFrameInterval": 2,
-      "encodingProfile": "MAIN",
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
       "bufferDepth": 6,
       "threadCount": 3,
       "gifStrategy": {
@@ -97,22 +97,22 @@
       },
       "targetFps": {
         "min": 30,
-        "max": 30,
+        "max": 60,
         "default": 30
       },
       "videoBitrate": {
-        "min": 6000000,
-        "max": 10000000,
-        "default": 8000000
+        "min": 12000000,
+        "max": 18000000,
+        "default": 15000000
       },
       "audioBitrate": {
         "min": 128000,
-        "max": 128000,
+        "max": 192000,
         "default": 128000
       },
       "audioSampleRate": 48000,
-      "keyFrameInterval": 2,
-      "encodingProfile": "MAIN",
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
       "bufferDepth": 10,
       "threadCount": 4,
       "gifStrategy": {
@@ -145,13 +145,13 @@
         "default": 30
       },
       "videoBitrate": {
-        "min": 8000000,
-        "max": 12000000,
-        "default": 10000000
+        "min": 15000000,
+        "max": 25000000,
+        "default": 20000000
       },
       "audioBitrate": {
         "min": 128000,
-        "max": 128000,
+        "max": 192000,
         "default": 128000
       },
       "audioSampleRate": 48000,

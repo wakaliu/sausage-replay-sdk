@@ -22,7 +22,7 @@ object DeviceTierManager {
     /**
      * 初始化设备档位管理器
      */
-    fun initialize(context: Context, tier: DevicePerformanceTier? = null): Boolean {
+    fun initialize(context: Context, tier: Int? = null): Boolean {
         return try {
             // 加载配置文件
             if (!DeviceTierConfig.loadConfig(context)) {
@@ -47,9 +47,38 @@ object DeviceTierManager {
     }
     
     /**
+     * 使用整型标识初始化设备档位管理器，完全避免枚举依赖
+     * @param context 应用上下文
+     * @param tierValue 设备性能档位整型值 (0=LOW_END, 1=MID_RANGE, 2=HIGH_END, 3=FLAGSHIP)
+     * @return 是否初始化成功
+     */
+    fun initializeWithTierValue(context: Context, tierValue: Int): Boolean {
+        return try {
+            Log.d(TAG, "initializeWithTierValue called with tierValue: $tierValue")
+            
+            // 加载配置文件
+            if (!DeviceTierConfig.loadConfig(context)) {
+                Log.w(TAG, "Failed to load config, using default values")
+            }
+            
+            // 直接使用整型值，无需转换
+            currentTier.set(tierValue)
+            tierConfig = DeviceTierConfig.getTierConfig(tierValue)
+            adaptiveStrategies = DeviceTierConfig.getAdaptiveStrategies()
+            
+            Log.i(TAG, "Device tier manager initialized with tierValue: $tierValue")
+            isInitialized = true
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize device tier manager with tierValue: $tierValue", e)
+            false
+        }
+    }
+    
+    /**
      * 获取当前设备档位
      */
-    fun getCurrentTier(): DevicePerformanceTier = currentTier.get()
+    fun getCurrentTier(): Int = currentTier.get()
     
     /**
      * 获取当前档位配置
@@ -76,7 +105,7 @@ object DeviceTierManager {
      */
     fun calculateRecordingParams(
         screenMetrics: DisplayMetrics,
-        quality: VideoQuality,
+        quality: Int,
         customBitrate: Long? = null,
         customFps: Int? = null
     ): RecordingParams {
@@ -170,7 +199,7 @@ object DeviceTierManager {
     /**
      * 检测设备档位
      */
-    private fun detectDeviceTier(context: Context): DevicePerformanceTier {
+    private fun detectDeviceTier(context: Context): Int {
         return try {
             val metrics = context.resources.displayMetrics
             val totalMemory = Runtime.getRuntime().maxMemory()
@@ -243,18 +272,19 @@ object DeviceTierManager {
     private fun calculateResolution(
         screenMetrics: DisplayMetrics,
         config: TierConfig,
-        quality: VideoQuality
+        quality: Int
     ): Resolution {
         val screenWidth = screenMetrics.widthPixels
         val screenHeight = screenMetrics.heightPixels
         val maxWidth = config.maxResolution.width
         val maxHeight = config.maxResolution.height
         
-        // 根据质量档位计算目标分辨率
+        // 根据质量档位计算目标分辨率（提升质量）
         val targetHeight = when (quality) {
-            VideoQuality.HIGH -> maxHeight
-            VideoQuality.MEDIUM -> (maxHeight * 0.75).toInt()
-            VideoQuality.LOW -> (maxHeight * 0.5).toInt()
+            VideoQuality.HIGH -> maxHeight                    // 100% 最大分辨率
+            VideoQuality.MEDIUM -> (maxHeight * 0.9).toInt() // 90% 最大分辨率（从75%提升）
+            VideoQuality.LOW -> (maxHeight * 0.8).toInt()    // 80% 最大分辨率（从50%提升）
+            else -> (maxHeight * 0.9).toInt()                // 默认中等质量
         }
         
         // 保持宽高比
@@ -274,7 +304,7 @@ object DeviceTierManager {
     /**
      * 计算比特率
      */
-    private fun calculateBitrate(resolution: Resolution, config: TierConfig, quality: VideoQuality): Long {
+    private fun calculateBitrate(resolution: Resolution, config: TierConfig, quality: Int): Long {
         val pixels = resolution.width * resolution.height
         val baseBitrate = config.videoBitrate.default
         
@@ -283,6 +313,7 @@ object DeviceTierManager {
             VideoQuality.HIGH -> 1.2
             VideoQuality.MEDIUM -> 1.0
             VideoQuality.LOW -> 0.8
+            else -> 1.0  // 默认中等质量
         }
         
         val calculatedBitrate = (baseBitrate * qualityMultiplier).toLong()

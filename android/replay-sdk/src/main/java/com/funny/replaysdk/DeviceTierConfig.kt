@@ -40,14 +40,20 @@ object DeviceTierConfig {
     /**
      * 获取设备档位配置
      */
-    fun getTierConfig(tier: DevicePerformanceTier): TierConfig? {
+    fun getTierConfig(tier: Int): TierConfig? {
         if (!isLoaded || configData == null) {
             Log.w(TAG, "Config not loaded, using default values")
             return getDefaultTierConfig(tier)
         }
         
         return try {
-            val tierName = tier.name
+            val tierName = when (tier) {
+                DevicePerformanceTier.LOW_END -> "LOW_END"
+                DevicePerformanceTier.MID_RANGE -> "MID_RANGE"
+                DevicePerformanceTier.HIGH_END -> "HIGH_END"
+                DevicePerformanceTier.FLAGSHIP -> "FLAGSHIP"
+                else -> "MID_RANGE"
+            }
             val tierJson = configData!!.getJSONObject("deviceTiers").getJSONObject(tierName)
             parseTierConfig(tierJson)
         } catch (e: Exception) {
@@ -174,17 +180,17 @@ object DeviceTierConfig {
         )
     }
     
-    private fun getDefaultTierConfig(tier: DevicePerformanceTier): TierConfig {
+    private fun getDefaultTierConfig(tier: Int): TierConfig {
         return when (tier) {
             DevicePerformanceTier.LOW_END -> TierConfig(
                 name = "低端机",
-                maxResolution = Resolution(854, 480),
+                maxResolution = Resolution(1280, 720),
                 targetFps = FpsRange(25, 30, 30),
-                videoBitrate = BitrateRange(1500000, 3000000, 2000000),
-                audioBitrate = BitrateRange(96000, 128000, 96000),
+                videoBitrate = BitrateRange(4000000, 6000000, 5000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 44100,
-                keyFrameInterval = 4,
-                encodingProfile = "BASELINE",
+                keyFrameInterval = 2,
+                encodingProfile = "MAIN",
                 bufferDepth = 3,
                 threadCount = 2,
                 gifStrategy = GifStrategy(false, 8, Resolution(854, 480), 10),
@@ -194,13 +200,13 @@ object DeviceTierConfig {
             )
             DevicePerformanceTier.MID_RANGE -> TierConfig(
                 name = "中端机",
-                maxResolution = Resolution(1280, 720),
+                maxResolution = Resolution(1920, 1080),
                 targetFps = FpsRange(30, 30, 30),
-                videoBitrate = BitrateRange(3000000, 6000000, 4000000),
-                audioBitrate = BitrateRange(96000, 128000, 128000),
+                videoBitrate = BitrateRange(8000000, 12000000, 10000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
-                keyFrameInterval = 2,
-                encodingProfile = "MAIN",
+                keyFrameInterval = 1,
+                encodingProfile = "HIGH",
                 bufferDepth = 6,
                 threadCount = 3,
                 gifStrategy = GifStrategy(true, 10, Resolution(1280, 720), 15),
@@ -211,12 +217,12 @@ object DeviceTierConfig {
             DevicePerformanceTier.HIGH_END -> TierConfig(
                 name = "高端机",
                 maxResolution = Resolution(1920, 1080),
-                targetFps = FpsRange(30, 30, 30),
-                videoBitrate = BitrateRange(6000000, 10000000, 8000000),
-                audioBitrate = BitrateRange(128000, 128000, 128000),
+                targetFps = FpsRange(30, 60, 30),
+                videoBitrate = BitrateRange(12000000, 18000000, 15000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
-                keyFrameInterval = 2,
-                encodingProfile = "MAIN",
+                keyFrameInterval = 1,
+                encodingProfile = "HIGH",
                 bufferDepth = 10,
                 threadCount = 4,
                 gifStrategy = GifStrategy(true, 12, Resolution(1920, 1080), 20),
@@ -228,8 +234,8 @@ object DeviceTierConfig {
                 name = "旗舰机",
                 maxResolution = Resolution(1920, 1080),
                 targetFps = FpsRange(30, 60, 30),
-                videoBitrate = BitrateRange(8000000, 12000000, 10000000),
-                audioBitrate = BitrateRange(128000, 128000, 128000),
+                videoBitrate = BitrateRange(15000000, 25000000, 20000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
                 keyFrameInterval = 1,
                 encodingProfile = "HIGH",
@@ -238,6 +244,22 @@ object DeviceTierConfig {
                 gifStrategy = GifStrategy(true, 15, Resolution(1920, 1080), 30),
                 ioStrategy = "ASYNC_DOUBLE_BUFFER",
                 logLevel = "DEBUG",
+                adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
+            )
+            else -> TierConfig(
+                name = "中端机",
+                maxResolution = Resolution(1920, 1080),
+                targetFps = FpsRange(30, 30, 30),
+                videoBitrate = BitrateRange(8000000, 12000000, 10000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
+                audioSampleRate = 44100,
+                keyFrameInterval = 1,
+                encodingProfile = "HIGH",
+                bufferDepth = 8,
+                threadCount = 4,
+                gifStrategy = GifStrategy(true, 12, Resolution(1280, 720), 20),
+                ioStrategy = "ASYNC_SINGLE_BUFFER",
+                logLevel = "INFO",
                 adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
             )
         }

@@ -78,10 +78,10 @@ Android AAR (Kotlin)
 
 ### FR-AND-003 屏幕录制
 - 使用`MediaProjection`创建`VirtualDisplay`，`Surface`接入`MediaRecorder`视频源。
-- 分辨率：跟随当前屏幕，或按`RecordingConfig.Quality`降采样（High/1080p, Medium/720p, Low/480p）。
-- 帧率：目标30fps；可根据设备能力自动回退。
-- 比特率：依据质量档位与分辨率自动计算，可被`RecordingConfig`覆盖。
-- 录制时长：上限可配置，默认60s；到时自动停止并回调。
+- 分辨率：根据设备档位自动选择（LowEnd/480p, MidRange/720p, HighEnd/1080p, Flagship/1080p）。
+- 帧率：根据设备档位自动设置（LowEnd/25-30fps, MidRange/30fps, HighEnd/30fps, Flagship/30-60fps）。
+- 比特率：根据设备档位和分辨率自动计算（LowEnd/1.5-3Mbps, MidRange/3-6Mbps, HighEnd/6-10Mbps, Flagship/8-12Mbps）。
+- 录制时长：默认60s；到时自动停止并回调。
 
 ### FR-AND-004 音频录制
 - 音频源：`AudioSource.MIC`，与视频合轨（`MediaRecorder`）。
@@ -153,7 +153,7 @@ object PermissionManager {
 }
 
 object RecordingManager {
-    fun startRecording(activity: Activity, config: RecordingConfig): Boolean
+    fun startRecording(activity: Activity): Boolean
     fun stopRecording(callback: (RecordingResult) -> Unit)
     fun pauseRecording()
     fun resumeRecording()
@@ -166,17 +166,9 @@ object RecordingManager {
 
 ### 5.3 配置与模型（更新）
 ```kotlin
-data class RecordingConfig(
-    val quality: VideoQuality = VideoQuality.MEDIUM,
-    val maxDurationSeconds: Int = 60,
-    val maxFileSizeBytes: Long = 50L * 1024 * 1024,
-    val includeAudio: Boolean = true,
-    val outputFormat: OutputFormat = OutputFormat.MP4,
-    val outputPath: String? = null,
-    val targetBitrate: Int? = null,
-    val targetFps: Int = 30,
-    val performanceTier: DevicePerformanceTier = DevicePerformanceTier.MID_RANGE
-)
+// 录制配置现在由 Android 端根据设备档位自动生成
+// Unity 端不再需要传递 RecordingConfig 参数
+// Android 端会根据设备性能档位自动选择最优的录制参数
 
 enum class VideoQuality { LOW, MEDIUM, HIGH }
 
@@ -221,10 +213,10 @@ enum class RecordingStatus { IDLE, RECORDING, PAUSED, STOPPING }
 
 | 档位 | 分辨率上限 | 目标FPS | 视频比特率参考 | 其他策略 |
 |------|------------|---------|----------------|----------|
-| LowEnd | 854x480  | 25-30   | 1.5~3 Mbps     | 降低缓冲、禁用GIF或≤8fps、关键帧间隔增大 |
-| MidRange | 1280x720 | 30    | 3~6 Mbps       | 默认配置 |
-| HighEnd | 1920x1080 | 30    | 6~10 Mbps      | 提升缓冲深度，提高稳定性 |
-| Flagship | 1920x1080 | 30-60 | 8~12 Mbps      | 可启用更高FPS与更快转码 |
+| LowEnd | 1280x720  | 25-30   | 4~6 Mbps       | 降低缓冲(3帧)、禁用GIF或≤8fps、关键帧间隔2s |
+| MidRange | 1920x1080 | 30    | 8~12 Mbps      | 默认配置、缓冲6帧、关键帧间隔1s |
+| HighEnd | 1920x1080 | 30-60  | 12~18 Mbps     | 提升缓冲深度(10帧)，提高稳定性 |
+| Flagship | 1920x1080 | 30-60  | 15~25 Mbps     | 最高缓冲(14帧)、6线程、最快转码 |
 
 音频：AAC LC，48kHz，96~128kbps；低端机可降至44.1kHz/96kbps。
 
@@ -234,19 +226,25 @@ enum class RecordingStatus { IDLE, RECORDING, PAUSED, STOPPING }
 
 | 维度 | LowEnd（低端机） | MidRange（中端机） | HighEnd（高端机） | Flagship（旗舰机） |
 |------|------------------|--------------------|-------------------|--------------------|
-| 目标分辨率上限 | 480p (854x480) | 720p (1280x720) | 1080p (1920x1080) | 1080p@更高稳定性；可选2K(视设备) |
-| 目标FPS | 25~30 | 30 | 30 | 30~60（按能力） |
-| 视频比特率 | 1.5~3 Mbps | 3~6 Mbps | 6~10 Mbps | 8~12 Mbps |
-| 关键帧间隔 (GOP) | 2~4s | 2s | 1~2s | 1s |
-| 编码Profile | Baseline/Main | Main | Main/High | High |
-| 音频 | AAC LC 44.1~48kHz @ 96kbps | 48kHz @ 96~128kbps | 48kHz @ 128kbps | 48kHz @ 128kbps |
-| 缓冲深度（帧队列） | 3~5 | 5~8 | 8~12 | 12~16 |
-| 线程并发 | 低：1~2工作线程 | 中：2~3 | 高：3~4 | 高：4~6 |
-| GIF策略 | 默认禁用或≤8fps | ≤10fps，≤720p | ≤12fps，≤1080p | ≤15fps，≤1080p |
+| 目标分辨率上限 | 720p (1280x720) | 1080p (1920x1080) | 1080p (1920x1080) | 1080p (1920x1080) |
+| 目标FPS | 25~30 | 30 | 30~60 | 30~60 |
+| 视频比特率 | 4~6 Mbps | 8~12 Mbps | 12~18 Mbps | 15~25 Mbps |
+| 关键帧间隔 (GOP) | 2s | 1s | 1s | 1s |
+| 编码Profile | MAIN | HIGH | HIGH | HIGH |
+| 音频 | AAC LC 44.1kHz @ 128kbps | 48kHz @ 128kbps | 48kHz @ 128kbps | 48kHz @ 128kbps |
+| 缓冲深度（帧队列） | 3帧 | 6帧 | 10帧 | 14帧 |
+| 线程并发 | 2工作线程 | 3工作线程 | 4工作线程 | 6工作线程 |
+| GIF策略 | 禁用或≤8fps，≤480p | ≤10fps，≤720p | ≤12fps，≤1080p | ≤15fps，≤1080p |
 | 文件I/O | 串行写入+小缓存 | 串行写入+中等缓存 | 异步写入+双缓冲 | 异步写入+双缓冲 |
-| 日志级别 | Warn/ Error | Info | Debug | Debug/Verbose（可切换） |
+| 日志级别 | WARN | INFO | DEBUG | DEBUG |
 
-注：具体参数可由`RecordingConfig.targetBitrate/targetFps`覆盖；设备能力探测可上调或降级档位。
+注：所有参数由 Android 端根据设备档位自动计算，无需手动配置；设备能力探测可自动上调或降级档位。
+
+### 7.1.1 自动配置机制
+- **设备档位检测**：SDK 启动时自动检测设备性能（CPU、内存、GPU等）
+- **参数自动生成**：根据检测到的档位自动生成最优的录制参数
+- **动态调整**：录制过程中根据实际性能表现动态调整参数
+- **无需手动配置**：Unity 端只需调用 `StartRecording()`，无需传递任何配置参数
 
 ---
 
@@ -287,7 +285,7 @@ enum class RecordingStatus { IDLE, RECORDING, PAUSED, STOPPING }
 
 ## 7.6 监控与日志
 - 指标：CPU、内存增量、队列深度、丢帧率、I/O耗时、回调耗时、主线程帧耗时。
-- 日志：结构化（level、tag、eventId、value）；可通过`RecordingConfig`设置日志级别与上报回调（SDK不内置上报）。
+- 日志：结构化（level、tag、eventId、value）；日志级别根据设备档位自动设置（SDK不内置上报）。
 
 ---
 

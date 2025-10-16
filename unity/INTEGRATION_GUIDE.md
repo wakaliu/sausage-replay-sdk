@@ -95,14 +95,9 @@ public class RecordingManager : MonoBehaviour, IRecordingCallback
 
     public void StartRecording()
     {
-        var config = new RecordingConfig
-        {
-            quality = VideoQuality.HIGH,
-            maxDurationSeconds = 60,
-            includeAudio = true
-        };
-
-        SausageReplaySDK.StartRecording(config, this);
+        // 新的简化调用方式：无需传递配置参数
+        // SDK 会根据设备档位自动选择最优的录制参数
+        SausageReplaySDK.StartRecording();
     }
 
     // 实现回调接口
@@ -135,31 +130,35 @@ Debug.Log($"内存使用: {memoryUsage.usagePercentage}%");
 
 ## 配置选项
 
-### 录制配置
+### 自动配置机制
+
+**重要更新**：从 v2.0 开始，SDK 采用自动配置机制，无需手动设置录制参数。
 
 ```csharp
-public class RecordingConfig
-{
-    public VideoQuality quality = VideoQuality.MEDIUM;        // 视频质量
-    public int maxDurationSeconds = 60;                       // 最大录制时长
-    public long maxFileSizeBytes = 50L * 1024 * 1024;        // 最大文件大小
-    public bool includeAudio = true;                          // 是否包含音频
-    public OutputFormat outputFormat = OutputFormat.MP4;      // 输出格式
-    public string outputPath = null;                          // 自定义输出路径
-    public int? targetBitrate = null;                         // 目标比特率
-    public int targetFps = 30;                                // 目标帧率
-    public DevicePerformanceTier performanceTier = DevicePerformanceTier.MID_RANGE; // 设备档位
-}
+// 旧版本（已废弃）
+// var config = new RecordingConfig { quality = VideoQuality.HIGH };
+// SausageReplaySDK.StartRecording(config, callback);
+
+// 新版本（推荐）
+SausageReplaySDK.StartRecording(); // 自动根据设备档位选择最优参数
 ```
 
-### 设备档位选择
+### 设备档位自动检测
 
-根据目标设备选择合适的档位：
+SDK 会自动检测设备性能并选择对应的录制参数：
 
-- **LOW_END**: 低端设备，适合性能较差的设备
-- **MID_RANGE**: 中端设备，默认选择，适合大多数设备
-- **HIGH_END**: 高端设备，适合性能较好的设备
-- **FLAGSHIP**: 旗舰设备，适合最新旗舰设备
+| 设备档位 | 分辨率 | 帧率 | 比特率 | 适用设备 |
+|---------|--------|------|--------|----------|
+| LowEnd | 720p | 25-30fps | 4-6Mbps | 低端设备 |
+| MidRange | 1080p | 30fps | 8-12Mbps | 中端设备 |
+| HighEnd | 1080p | 30-60fps | 12-18Mbps | 高端设备 |
+| Flagship | 1080p | 30-60fps | 15-25Mbps | 旗舰设备 |
+
+**优势**：
+- 无需手动配置参数
+- 自动适配不同设备性能
+- 动态调整录制质量
+- 减少集成复杂度
 
 ## 最佳实践
 
@@ -238,36 +237,15 @@ private void OnApplicationPause(bool pauseStatus)
 ### 4. 性能优化
 
 ```csharp
-// 根据设备性能选择合适的配置
-private RecordingConfig CreateOptimalConfig()
-{
-    var tierInfo = SausageReplaySDK.GetDeviceTierInfo();
-    
-    var config = new RecordingConfig
-    {
-        performanceTier = tierInfo.tier
-    };
-    
-    // 根据设备档位调整参数
-    switch (tierInfo.tier)
-    {
-        case DevicePerformanceTier.LOW_END:
-            config.quality = VideoQuality.LOW;
-            config.maxDurationSeconds = 30;
-            break;
-        case DevicePerformanceTier.MID_RANGE:
-            config.quality = VideoQuality.MEDIUM;
-            config.maxDurationSeconds = 60;
-            break;
-        case DevicePerformanceTier.HIGH_END:
-        case DevicePerformanceTier.FLAGSHIP:
-            config.quality = VideoQuality.HIGH;
-            config.maxDurationSeconds = 120;
-            break;
-    }
-    
-    return config;
-}
+// 新的自动优化机制：无需手动配置
+// SDK 会自动根据设备性能选择最优参数
+
+// 获取设备档位信息（可选，用于调试）
+var tierInfo = SausageReplaySDK.GetDeviceTierInfo();
+Debug.Log($"设备档位: {tierInfo.tier}");
+Debug.Log($"设备性能: {tierInfo.description}");
+
+// 所有参数现在由 SDK 自动管理，无需手动配置
 ```
 
 ## 常见问题

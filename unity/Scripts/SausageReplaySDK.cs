@@ -4,6 +4,8 @@ using UnityEngine;
 
 namespace SausageReplay
 {
+    // 回调实现已迁移到 UnityRecordingCallbacks.cs
+
     /// <summary>
     /// Sausage Replay SDK 主接口
     /// 提供屏幕录制功能的Unity C# 桥接
@@ -60,7 +62,8 @@ namespace SausageReplay
         #region 数据结构
 
         /// <summary>
-        /// 录制配置
+        /// 录制配置（内部使用，Unity 层不再需要手动配置）
+        /// 配置现在由 Android 层根据设备档位自动生成
         /// </summary>
         [Serializable]
         public class RecordingConfig
@@ -111,7 +114,7 @@ namespace SausageReplay
         {
             public RecordingStatus status;
             public MemoryUsage memoryUsage;
-            public RecordingConfig config;
+            public DeviceTierInfo deviceTierInfo; // 替换为设备档位信息
             public bool hasProjection;
             public bool hasRecorder;
             public bool hasDisplay;
@@ -231,6 +234,79 @@ namespace SausageReplay
         /// </summary>
         public static event Action<VideoQuality> OnRecordingQualityAdjusted;
 
+        /// <summary>
+        /// 转换完成事件
+        /// </summary>
+        public static event Action<bool, string> OnConvertCompleted;
+
+        #endregion
+
+        #region 事件触发方法（供回调类使用）
+
+        /// <summary>
+        /// 触发录制开始事件
+        /// </summary>
+        internal static void TriggerOnRecordingStarted()
+        {
+            OnRecordingStarted?.Invoke();
+        }
+
+        /// <summary>
+        /// 触发录制进度事件
+        /// </summary>
+        internal static void TriggerOnRecordingProgress(long durationMs, long fileSizeBytes)
+        {
+            OnRecordingProgress?.Invoke(durationMs, fileSizeBytes);
+        }
+
+        /// <summary>
+        /// 触发录制暂停事件
+        /// </summary>
+        internal static void TriggerOnRecordingPaused()
+        {
+            OnRecordingPaused?.Invoke();
+        }
+
+        /// <summary>
+        /// 触发录制恢复事件
+        /// </summary>
+        internal static void TriggerOnRecordingResumed()
+        {
+            OnRecordingResumed?.Invoke();
+        }
+
+        /// <summary>
+        /// 触发录制停止事件
+        /// </summary>
+        internal static void TriggerOnRecordingStopped(RecordingResult result)
+        {
+            OnRecordingStopped?.Invoke(result);
+        }
+
+        /// <summary>
+        /// 触发录制错误事件
+        /// </summary>
+        internal static void TriggerOnRecordingError(int errorCode, string errorMessage)
+        {
+            OnRecordingError?.Invoke(errorCode, errorMessage);
+        }
+
+        /// <summary>
+        /// 触发质量调整事件
+        /// </summary>
+        internal static void TriggerOnRecordingQualityAdjusted(VideoQuality quality)
+        {
+            OnRecordingQualityAdjusted?.Invoke(quality);
+        }
+
+        /// <summary>
+        /// 触发转换完成事件
+        /// </summary>
+        internal static void TriggerOnConvertCompleted(bool success, string outputPath)
+        {
+            OnConvertCompleted?.Invoke(success, outputPath);
+        }
+
         #endregion
 
         #region 私有字段
@@ -326,10 +402,9 @@ namespace SausageReplay
         /// <summary>
         /// 开始录制
         /// </summary>
-        /// <param name="config">录制配置</param>
         /// <param name="callback">录制回调</param>
         /// <returns>是否成功开始</returns>
-        public static bool StartRecording(RecordingConfig config, IRecordingCallback callback = null)
+        public static bool StartRecording(IRecordingCallback callback = null)
         {
             if (!_isInitialized)
             {
@@ -337,11 +412,18 @@ namespace SausageReplay
                 return false;
             }
 
+            // 防重复开始：录制中或停止中，直接忽略
+            var status = GetRecordingStatus();
+            if (status == RecordingStatus.RECORDING || status == RecordingStatus.STOPPING)
+            {
+                Debug.LogWarning("Recording already in progress, ignore duplicate start");
+                return false;
+            }
+
             try
             {
                 _recordingCallback = callback;
-                string configJson = JsonUtility.ToJson(config);
-                return SausageReplaySDK_StartRecording(configJson);
+                return SausageReplaySDK_StartRecording();
             }
             catch (Exception e)
             {
@@ -361,6 +443,14 @@ namespace SausageReplay
                 return;
             }
 
+            // 添加状态检查，避免重复停止
+            var status = GetRecordingStatus();
+            if (status != RecordingStatus.RECORDING && status != RecordingStatus.PAUSED)
+            {
+                Debug.LogWarning($"Cannot stop recording, current status: {status}");
+                return;
+            }
+
             try
             {
                 SausageReplaySDK_StopRecording();
@@ -368,6 +458,29 @@ namespace SausageReplay
             catch (Exception e)
             {
                 Debug.LogError($"Exception stopping recording: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 强制停止录制（绕过状态检查）
+        /// 用于解决 Unity 项目状态不同步的问题
+        /// </summary>
+        public static void ForceStopRecording()
+        {
+            if (!_isInitialized)
+            {
+                Debug.LogError("SausageReplaySDK not initialized");
+                return;
+            }
+
+            Debug.LogWarning("Force stopping recording (bypassing status check)");
+            try
+            {
+                SausageReplaySDK_StopRecording();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Exception force stopping recording: {e.Message}");
             }
         }
 
@@ -721,7 +834,18 @@ namespace SausageReplay
             {
                 if (_sdkClass == null)
                 {
-                    _sdkClass = new AndroidJavaClass(SDK_CLASS_NAME);
+                    try
+                    {
+                        Debug.Log($"[SausageReplaySDK] Initializing Android SDK class: {SDK_CLASS_NAME}");
+                        _sdkClass = new AndroidJavaClass(SDK_CLASS_NAME);
+                        Debug.Log("[SausageReplaySDK] Android SDK class initialized successfully");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[SausageReplaySDK] Failed to initialize Android SDK class: {e.Message}");
+                        Debug.LogError($"[SausageReplaySDK] Exception type: {e.GetType().Name}");
+                        throw;
+                    }
                 }
                 return _sdkClass;
             }
@@ -766,32 +890,22 @@ namespace SausageReplay
             {
                 if (_currentActivity == null)
                 {
-                    using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                    try
                     {
-                        _currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                        Debug.Log("[SausageReplaySDK] Getting Unity current activity...");
+                        using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                        {
+                            _currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                            Debug.Log($"[SausageReplaySDK] Current activity obtained: {_currentActivity != null}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[SausageReplaySDK] Failed to get current activity: {e.Message}");
+                        throw;
                     }
                 }
                 return _currentActivity;
-            }
-        }
-
-        // 将C#枚举转换为Java端的DevicePerformanceTier枚举
-        private static AndroidJavaObject ToJavaTier(DevicePerformanceTier tier)
-        {
-            try
-            {
-                using (AndroidJavaClass tierClass = new AndroidJavaClass("com.funny.replaysdk.DevicePerformanceTier"))
-                {
-                    return tierClass.CallStatic<AndroidJavaObject>("valueOf", tier.ToString());
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to convert tier to Java enum: {e.Message}");
-                using (AndroidJavaClass tierClass = new AndroidJavaClass("com.funny.replaysdk.DevicePerformanceTier"))
-                {
-                    return tierClass.CallStatic<AndroidJavaObject>("valueOf", "MID_RANGE");
-                }
             }
         }
 
@@ -800,14 +914,29 @@ namespace SausageReplay
         {
             try
             {
-                // 将int转换为C#枚举，再转换为Java枚举对象
-                DevicePerformanceTier csharpTier = (DevicePerformanceTier)tier;
-                AndroidJavaObject javaTier = ToJavaTier(csharpTier);
-                return SdkClass.CallStatic<bool>("initialize", CurrentActivity, javaTier);
+                Debug.Log($"[SausageReplaySDK] Initializing SDK with tier: {tier}");
+                
+                // 注册 Unity 回调
+                var recordingCallback = new UnityRecordingCallbackImpl();
+                var convertCallback = new UnityConvertCallbackImpl();
+                
+                RecordingManagerClass.CallStatic("setUnityRecordingCallback", recordingCallback);
+                RecordingManagerClass.CallStatic("setUnityConvertCallback", convertCallback);
+                
+                // 直接传递整型参数：SausageReplayAndroidSDK.initialize(Context, Int)
+                bool result = SdkClass.CallStatic<bool>("initialize", CurrentActivity, tier);
+                
+                Debug.Log($"[SausageReplaySDK] Initialize result: {result}");
+                return result;
             }
             catch (Exception e)
             {
-                Debug.LogError($"Failed to initialize SDK: {e.Message}");
+                Debug.LogError($"[SausageReplaySDK] Failed to initialize SDK: {e.Message}");
+                Debug.LogError($"[SausageReplaySDK] Exception type: {e.GetType().Name}");
+                if (e.InnerException != null)
+                {
+                    Debug.LogError($"[SausageReplaySDK] Inner exception: {e.InnerException.Message}");
+                }
                 return false;
             }
         }
@@ -838,12 +967,13 @@ namespace SausageReplay
             }
         }
 
-        private static bool SausageReplaySDK_StartRecording(string configJson)
+        private static bool SausageReplaySDK_StartRecording()
         {
             try
             {
-                // 直接调用Android端方法，回调通过Android端的机制处理
-                return RecordingManagerClass.CallStatic<bool>("startRecording", CurrentActivity, configJson, null);
+                // 直接调用 Android SDK 方法，不传递任何配置参数
+                // Android 层会根据初始化时的设备档位自动生成配置
+                return RecordingManagerClass.CallStatic<bool>("startRecording", CurrentActivity);
             }
             catch (Exception e)
             {
@@ -856,14 +986,8 @@ namespace SausageReplay
         {
             try
             {
-                RecordingManagerClass.CallStatic("stopRecording", new AndroidJavaRunnable(() =>
-                {
-                    // 停止录制的回调处理
-                    UnityMainThreadDispatcher.Enqueue(() =>
-                    {
-                        OnRecordingStopped?.Invoke(new RecordingResult { isSuccess = true });
-                    });
-                }));
+                // 直接调用，无需传入 Runnable；结果由全局回调处理
+                RecordingManagerClass.CallStatic("stopRecording");
             }
             catch (Exception e)
             {
@@ -914,14 +1038,8 @@ namespace SausageReplay
         {
             try
             {
-                RecordingManagerClass.CallStatic("convertVideoFormat", inputPath, outputFormat, new AndroidJavaRunnable(() =>
-                {
-                    // 转换完成的回调处理
-                    UnityMainThreadDispatcher.Enqueue(() =>
-                    {
-                        callback?.Invoke(true, inputPath);
-                    });
-                }));
+                // 直接调用，无需传入 Runnable；结果由全局回调处理
+                RecordingManagerClass.CallStatic("convertVideoFormat", inputPath, outputFormat);
             }
             catch (Exception e)
             {
@@ -947,7 +1065,7 @@ namespace SausageReplay
         {
             try
             {
-                return RecordingManagerClass.CallStatic<string>("getDetailedStatus");
+                return RecordingManagerClass.CallStatic<string>("getDetailedStatusJson");
             }
             catch (Exception e)
             {
@@ -1133,7 +1251,7 @@ namespace SausageReplay
         private static bool SausageReplaySDK_Initialize(int tier) => false;
         private static bool SausageReplaySDK_IsPlatformSupported() => false;
         private static string SausageReplaySDK_GetVersion() => "1.0.0";
-        private static bool SausageReplaySDK_StartRecording(string configJson) => false;
+        private static bool SausageReplaySDK_StartRecording() => false;
         private static void SausageReplaySDK_StopRecording() { }
         private static bool SausageReplaySDK_PauseRecording() => false;
         private static bool SausageReplaySDK_ResumeRecording() => false;
@@ -1264,4 +1382,89 @@ namespace SausageReplay
 
         #endregion
     }
+
+    #region Unity 回调实现类
+
+    /// <summary>
+    /// Unity 录制回调实现
+    /// </summary>
+    public class UnityRecordingCallbackImpl : AndroidJavaProxy
+    {
+        public UnityRecordingCallbackImpl() : base("com.funny.replaysdk.UnityRecordingCallback") { }
+
+        public void onRecordingStarted()
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingStarted();
+            });
+        }
+
+        public void onRecordingProgress(long durationMs, long fileSizeBytes)
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingProgress(durationMs, fileSizeBytes);
+            });
+        }
+
+        public void onRecordingPaused()
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingPaused();
+            });
+        }
+
+        public void onRecordingResumed()
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingResumed();
+            });
+        }
+
+        public void onRecordingStopped(bool success, string filePath, long fileSize, float duration, int errorCode, string errorMessage)
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                var result = new SausageReplaySDK.RecordingResult
+                {
+                    isSuccess = success,
+                    filePath = filePath,
+                    fileSize = fileSize,
+                    duration = duration,
+                    errorCode = errorCode,
+                    errorMessage = errorMessage
+                };
+                SausageReplaySDK.TriggerOnRecordingStopped(result);
+            });
+        }
+
+        public void onRecordingError(int errorCode, string errorMessage)
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingError(errorCode, errorMessage);
+            });
+        }
+
+        public void onRecordingQualityAdjusted(int quality)
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnRecordingQualityAdjusted((SausageReplaySDK.VideoQuality)quality);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Unity 转换回调实现
+    /// </summary>
+    public class UnityConvertCallbackImpl : AndroidJavaProxy
+    {
+        public UnityConvertCallbackImpl() : base("com.funny.replaysdk.UnityConvertCallback") { }
+
+        public void onConvertCompleted(bool success, string outputPath)
+        {
+            UnityMainThreadDispatcher.Enqueue(() => {
+                SausageReplaySDK.TriggerOnConvertCompleted(success, outputPath);
+            });
+        }
+    }
+
+    #endregion
 }
