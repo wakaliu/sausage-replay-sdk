@@ -11,7 +11,7 @@
 
 + (instancetype)defaultConfig {
     SRRecordingConfig *config = [[SRRecordingConfig alloc] init];
-    config.quality = SRVideoQualityMedium;
+    config.qualityPreset = SRVideoQualityPresetStandard; // 默认使用Standard档位
     config.maxDurationSeconds = 60;
     config.maxFileSizeBytes = 50L * 1024 * 1024; // 50MB
     config.includeAudio = YES;
@@ -19,8 +19,6 @@
     config.outputPath = nil;
     config.targetBitrate = nil;
     config.targetFps = 30;
-    config.qualityPreset = SRVideoQualityPresetStandard; // 默认使用Standard档位
-    config.performanceTier = SRDevicePerformanceTierMidRange;
     return config;
 }
 

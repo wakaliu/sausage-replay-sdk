@@ -59,39 +59,6 @@ const unsigned char SausageReplayVersionString[] = "1.0.0";
     return YES;
 }
 
-+ (BOOL)initializeWithTier:(SRDevicePerformanceTier)tier {
-    if (_isInitialized) {
-        NSLog(@"SausageReplayIOSSDK already initialized");
-        return YES;
-    }
-    
-    // 检查平台支持
-    if (![self isPlatformSupported]) {
-        NSLog(@"Platform not supported");
-        return NO;
-    }
-    
-    // 设置设备档位
-    _currentTier = tier;
-    
-    // 根据设备性能档位映射到视频清晰度档位（兼容性）
-    switch (tier) {
-        case SRDevicePerformanceTierMidRange:
-            _currentPreset = SRVideoQualityPresetStandard;
-            break;
-        case SRDevicePerformanceTierHighEnd:
-            _currentPreset = SRVideoQualityPresetHighFps;
-            break;
-    }
-    
-    // 清理临时文件
-    [SRFileManager cleanupTempFiles];
-    
-    _isInitialized = YES;
-    NSLog(@"SausageReplayIOSSDK initialized successfully with tier: %ld", (long)tier);
-    
-    return YES;
-}
 
 + (BOOL)isPlatformSupported {
     // 检查iOS版本
@@ -145,78 +112,31 @@ const unsigned char SausageReplayVersionString[] = "1.0.0";
     return memoryUsage;
 }
 
-+ (SRDeviceTierInfo *)getDeviceTierInfo {
-    SRDeviceTierInfo *tierInfo = [[SRDeviceTierInfo alloc] init];
-    tierInfo.tier = _currentTier;
-    
-    // 根据视频清晰度档位设置参数
-    switch (_currentPreset) {
-        case SRVideoQualityPresetBasic:
-            tierInfo.tierName = @"Basic";
-            tierInfo.maxWidth = 1280;
-            tierInfo.maxHeight = 720;
-            tierInfo.targetFps = 30;
-            tierInfo.videoBitrate = 2000000; // 2 Mbps
-            tierInfo.gifSupported = YES;
-            break;
-        case SRVideoQualityPresetStandard:
-            tierInfo.tierName = @"Standard";
-            tierInfo.maxWidth = 1920;
-            tierInfo.maxHeight = 1080;
-            tierInfo.targetFps = 30;
-            tierInfo.videoBitrate = 4000000; // 4 Mbps
-            tierInfo.gifSupported = YES;
-            break;
-        case SRVideoQualityPresetSmooth:
-            tierInfo.tierName = @"Smooth";
-            tierInfo.maxWidth = 1280;
-            tierInfo.maxHeight = 720;
-            tierInfo.targetFps = 60;
-            tierInfo.videoBitrate = 3000000; // 3 Mbps
-            tierInfo.gifSupported = YES;
-            break;
-        case SRVideoQualityPresetHighFps:
-            tierInfo.tierName = @"HighFps";
-            tierInfo.maxWidth = 1920;
-            tierInfo.maxHeight = 1080;
-            tierInfo.targetFps = 60;
-            tierInfo.videoBitrate = 6000000; // 6 Mbps
-            tierInfo.gifSupported = YES;
-            break;
-        case SRVideoQualityPresetUltra:
-            tierInfo.tierName = @"Ultra";
-            tierInfo.maxWidth = 2560;
-            tierInfo.maxHeight = 1440;
-            tierInfo.targetFps = 30;
-            tierInfo.videoBitrate = 8000000; // 8 Mbps
-            tierInfo.gifSupported = YES;
-            break;
-    }
-    
-    return tierInfo;
-}
 
 + (SRVideoQualityPreset)getCurrentPreset {
     return _currentPreset;
 }
 
 + (BOOL)isGifConversionSupported {
-    // 检查设备是否支持GIF转换
-    SRDeviceTierInfo *tierInfo = [self getDeviceTierInfo];
-    return tierInfo.gifSupported;
+    // iOS设备都支持GIF转换
+    return YES;
 }
 
 + (SRGifConversionParams *)getGifConversionParams {
     SRGifConversionParams *params = [[SRGifConversionParams alloc] init];
     
-    switch (_currentTier) {
-        case SRDevicePerformanceTierMidRange:
+    // 根据视频清晰度档位设置GIF转换参数
+    switch (_currentPreset) {
+        case SRVideoQualityPresetBasic:
+        case SRVideoQualityPresetSmooth:
             params.maxFps = 10;
             params.maxWidth = 720;
             params.maxHeight = 720;
             params.maxDurationSeconds = 15;
             break;
-        case SRDevicePerformanceTierHighEnd:
+        case SRVideoQualityPresetStandard:
+        case SRVideoQualityPresetHighFps:
+        case SRVideoQualityPresetUltra:
             params.maxFps = 12;
             params.maxWidth = 1080;
             params.maxHeight = 1080;
@@ -227,10 +147,5 @@ const unsigned char SausageReplayVersionString[] = "1.0.0";
     return params;
 }
 
-+ (BOOL)reloadDeviceTierConfig {
-    // iOS版本暂不支持动态重新加载配置
-    // 这里只是返回成功，实际配置在初始化时确定
-    return YES;
-}
 
 @end

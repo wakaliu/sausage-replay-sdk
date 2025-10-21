@@ -436,7 +436,20 @@ static SRRecordingManager *_sharedInstance = nil;
 - (BOOL)adjustRecordingQuality:(SRVideoQuality)quality {
     // iOS录制过程中无法动态调整质量，这里只是更新配置
     if (self.currentConfig) {
-        self.currentConfig.quality = quality;
+        // 将SRVideoQuality映射到SRVideoQualityPreset
+        SRVideoQualityPreset preset;
+        switch (quality) {
+            case SRVideoQualityLow:
+                preset = SRVideoQualityPresetBasic;
+                break;
+            case SRVideoQualityMedium:
+                preset = SRVideoQualityPresetStandard;
+                break;
+            case SRVideoQualityHigh:
+                preset = SRVideoQualityPresetHighFps;
+                break;
+        }
+        self.currentConfig.qualityPreset = preset;
         
         if (self.recordingCallback) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -669,6 +682,7 @@ static SRRecordingManager *_sharedInstance = nil;
     self.currentConfig = nil;
     self.recordingCallback = nil;
     self.isPaused = NO;
+    self.currentStatus = SRRecordingStatusIdle;  // 重置状态为空闲
 }
 
 #pragma mark - RPScreenRecorderDelegate

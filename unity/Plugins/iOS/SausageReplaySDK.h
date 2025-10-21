@@ -19,11 +19,6 @@ extern "C" {
 /// @return 是否初始化成功
 bool SausageReplaySDK_Initialize(int preset);
 
-/// 使用设备性能档位初始化SDK（兼容性方法）
-/// @param tier 设备性能档位 (0=MidRange, 1=HighEnd)
-/// @return 是否初始化成功
-bool SausageReplaySDK_InitializeWithTier(int tier);
-
 /// 检查平台支持
 /// @return 是否支持屏幕录制
 bool SausageReplaySDK_IsPlatformSupported(void);
@@ -87,12 +82,6 @@ bool SausageReplaySDK_RecoverFromError(void);
 /// 重置状态
 void SausageReplaySDK_ResetStatus(void);
 
-// MARK: - 设备信息
-
-/// 获取设备档位信息
-/// @return 设备信息JSON字符串
-const char* SausageReplaySDK_GetDeviceTierInfo(void);
-
 // MARK: - 格式转换
 
 /// 检查GIF转换支持
@@ -102,10 +91,6 @@ bool SausageReplaySDK_IsGifConversionSupported(void);
 /// 获取GIF转换参数
 /// @return GIF转换参数JSON字符串
 const char* SausageReplaySDK_GetGifConversionParams(void);
-
-/// 重新加载设备档位配置
-/// @return 是否重新加载成功
-bool SausageReplaySDK_ReloadDeviceTierConfig(void);
 
 /// 转换视频格式
 /// @param inputPath 输入文件路径
@@ -122,32 +107,6 @@ bool SausageReplaySDK_HasMicrophonePermission(void);
 /// 请求麦克风权限
 /// @param callback 权限请求回调
 void SausageReplaySDK_RequestMicrophonePermission(void* callback);
-
-// MARK: - Unity回调注册
-
-/// 注册录制开始回调
-void SausageReplaySDK_RegisterOnRecordingStarted(void (*callback)(void));
-
-/// 注册录制进度回调
-void SausageReplaySDK_RegisterOnRecordingProgress(void (*callback)(long long, long long));
-
-/// 注册录制暂停回调
-void SausageReplaySDK_RegisterOnRecordingPaused(void (*callback)(void));
-
-/// 注册录制恢复回调
-void SausageReplaySDK_RegisterOnRecordingResumed(void (*callback)(void));
-
-/// 注册录制停止回调
-void SausageReplaySDK_RegisterOnRecordingStopped(void (*callback)(bool, const char*, long long, float));
-
-/// 注册录制错误回调
-void SausageReplaySDK_RegisterOnRecordingError(void (*callback)(int, const char*));
-
-/// 注册质量调整回调
-void SausageReplaySDK_RegisterOnRecordingQualityAdjusted(void (*callback)(int));
-
-/// 注册转换完成回调
-void SausageReplaySDK_RegisterOnConvertCompleted(void (*callback)(bool, const char*));
 
 #ifdef __cplusplus
 }

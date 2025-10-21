@@ -721,28 +721,6 @@ namespace SausageReplay
 
         #region 高级API
 
-        /// <summary>
-        /// 获取设备档位信息
-        /// </summary>
-        /// <returns>设备档位信息</returns>
-        public static DeviceTierInfo GetDeviceTierInfo()
-        {
-            if (!_isInitialized)
-            {
-                return null;
-            }
-
-            try
-            {
-                string tierJson = SausageReplaySDK_GetDeviceTierInfo();
-                return JsonUtility.FromJson<DeviceTierInfo>(tierJson);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception getting device tier info: {e.Message}");
-                return null;
-            }
-        }
 
         /// <summary>
         /// 检查GIF转换是否支持
@@ -789,28 +767,6 @@ namespace SausageReplay
             }
         }
 
-        /// <summary>
-        /// 重新加载设备档位配置
-        /// </summary>
-        /// <returns>是否成功重新加载</returns>
-        public static bool ReloadDeviceTierConfig()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
-
-            try
-            {
-                return SausageReplaySDK_ReloadDeviceTierConfig();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception reloading config: {e.Message}");
-                return false;
-            }
-        }
 
         #endregion
 
@@ -863,9 +819,6 @@ namespace SausageReplay
         private static extern void SausageReplaySDK_ResetStatus();
         
         [DllImport("__Internal")]
-        private static extern string SausageReplaySDK_GetDeviceTierInfo();
-        
-        [DllImport("__Internal")]
         private static extern int SausageReplaySDK_GetCurrentPreset();
         
         [DllImport("__Internal")]
@@ -873,9 +826,6 @@ namespace SausageReplay
         
         [DllImport("__Internal")]
         private static extern string SausageReplaySDK_GetGifConversionParams();
-        
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_ReloadDeviceTierConfig();
         
         [DllImport("__Internal")]
         private static extern void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback);
@@ -895,13 +845,12 @@ namespace SausageReplay
                 // iOS需要传递配置JSON，我们创建一个默认配置
                 var config = new RecordingConfig
                 {
-                    quality = VideoQuality.MEDIUM,
+                    qualityPreset = VideoQualityPreset.Standard,
                     maxDurationSeconds = 60,
                     maxFileSizeBytes = 50L * 1024 * 1024,
                     includeAudio = true,
                     outputFormat = OutputFormat.MP4,
-                    targetFps = 30,
-                    performanceTier = 1
+                    targetFps = 30
                 };
                 
                 string configJson = JsonUtility.ToJson(config);
@@ -1234,18 +1183,6 @@ namespace SausageReplay
             }
         }
 
-        private static string SausageReplaySDK_GetDeviceTierInfo()
-        {
-            try
-            {
-                return SdkClass.CallStatic<string>("getDeviceTierInfo");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to get device tier info: {e.Message}");
-                return "{}";
-            }
-        }
 
         private static bool SausageReplaySDK_IsGifConversionSupported()
         {
@@ -1273,18 +1210,6 @@ namespace SausageReplay
             }
         }
 
-        private static bool SausageReplaySDK_ReloadDeviceTierConfig()
-        {
-            try
-            {
-                return SdkClass.CallStatic<bool>("reloadDeviceTierConfig");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to reload device tier config: {e.Message}");
-                return false;
-            }
-        }
 
         // 权限相关方法
         private static bool SausageReplaySDK_HasMicrophonePermission()
@@ -1365,11 +1290,9 @@ namespace SausageReplay
         private static bool SausageReplaySDK_RecoverFromError() => false;
         private static void SausageReplaySDK_ResetStatus() { }
         private static void SausageReplaySDK_Release() { }
-        private static string SausageReplaySDK_GetDeviceTierInfo() => "{}";
         private static int SausageReplaySDK_GetCurrentPreset() => 1; // Standard
         private static bool SausageReplaySDK_IsGifConversionSupported() => false;
         private static string SausageReplaySDK_GetGifConversionParams() => "{}";
-        private static bool SausageReplaySDK_ReloadDeviceTierConfig() => false;
         private static bool SausageReplaySDK_HasMicrophonePermission() => false;
         private static void SausageReplaySDK_RequestMicrophonePermission() { }
         private static bool SausageReplaySDK_StartProgressMonitoring() => false;

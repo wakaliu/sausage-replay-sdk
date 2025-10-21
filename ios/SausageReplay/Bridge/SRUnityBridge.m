@@ -129,10 +129,6 @@ bool SausageReplaySDK_Initialize(int preset) {
     return [SausageReplayIOSSDK initializeWithPreset:videoPreset];
 }
 
-bool SausageReplaySDK_InitializeWithTier(int tier) {
-    SRDevicePerformanceTier deviceTier = (SRDevicePerformanceTier)tier;
-    return [SausageReplayIOSSDK initializeWithTier:deviceTier];
-}
 
 bool SausageReplaySDK_IsPlatformSupported(void) {
     return [SausageReplayIOSSDK isPlatformSupported];
@@ -167,16 +163,33 @@ bool SausageReplaySDK_StartRecording(const char* configJson) {
     }
     
     // 创建配置对象
-    SRRecordingConfig *config = [[SRRecordingConfig alloc] init];
-    config.quality = [configDict[@"quality"] integerValue];
-    config.maxDurationSeconds = [configDict[@"maxDurationSeconds"] integerValue];
-    config.maxFileSizeBytes = [configDict[@"maxFileSizeBytes"] longLongValue];
-    config.includeAudio = [configDict[@"includeAudio"] boolValue];
-    config.outputFormat = [configDict[@"outputFormat"] integerValue];
-    config.outputPath = configDict[@"outputPath"];
-    config.targetBitrate = configDict[@"targetBitrate"];
-    config.targetFps = [configDict[@"targetFps"] integerValue];
-    config.performanceTier = [configDict[@"performanceTier"] integerValue];
+    SRRecordingConfig *config = [SRRecordingConfig defaultConfig];
+    
+    // 解析配置参数
+    if (configDict[@"qualityPreset"]) {
+        config.qualityPreset = [configDict[@"qualityPreset"] integerValue];
+    }
+    if (configDict[@"maxDurationSeconds"]) {
+        config.maxDurationSeconds = [configDict[@"maxDurationSeconds"] integerValue];
+    }
+    if (configDict[@"maxFileSizeBytes"]) {
+        config.maxFileSizeBytes = [configDict[@"maxFileSizeBytes"] longLongValue];
+    }
+    if (configDict[@"includeAudio"]) {
+        config.includeAudio = [configDict[@"includeAudio"] boolValue];
+    }
+    if (configDict[@"outputFormat"]) {
+        config.outputFormat = [configDict[@"outputFormat"] integerValue];
+    }
+    if (configDict[@"outputPath"]) {
+        config.outputPath = configDict[@"outputPath"];
+    }
+    if (configDict[@"targetBitrate"]) {
+        config.targetBitrate = configDict[@"targetBitrate"];
+    }
+    if (configDict[@"targetFps"]) {
+        config.targetFps = [configDict[@"targetFps"] integerValue];
+    }
     
     // 创建Unity回调
     if (!_unityCallback) {
@@ -254,25 +267,6 @@ void SausageReplaySDK_ResetStatus(void) {
     [SRRecordingManager resetStatus];
 }
 
-const char* SausageReplaySDK_GetDeviceTierInfo(void) {
-    SRDeviceTierInfo *tierInfo = [SausageReplayIOSSDK getDeviceTierInfo];
-    if (!tierInfo) {
-        return createCString(@"{}");
-    }
-    
-    NSDictionary *tierDict = @{
-        @"tier": @(tierInfo.tier),
-        @"tierName": tierInfo.tierName,
-        @"maxWidth": @(tierInfo.maxWidth),
-        @"maxHeight": @(tierInfo.maxHeight),
-        @"targetFps": @(tierInfo.targetFps),
-        @"videoBitrate": @(tierInfo.videoBitrate),
-        @"gifSupported": @(tierInfo.gifSupported)
-    };
-    
-    NSString *jsonString = createJSONString(tierDict);
-    return createCString(jsonString);
-}
 
 bool SausageReplaySDK_IsGifConversionSupported(void) {
     return [SausageReplayIOSSDK isGifConversionSupported];
@@ -295,9 +289,6 @@ const char* SausageReplaySDK_GetGifConversionParams(void) {
     return createCString(jsonString);
 }
 
-bool SausageReplaySDK_ReloadDeviceTierConfig(void) {
-    return [SausageReplayIOSSDK reloadDeviceTierConfig];
-}
 
 void SausageReplaySDK_ConvertVideoFormat(const char* inputPath, int outputFormat, void(*callback)(bool success, const char* outputPath)) {
     if (!inputPath || !callback) {

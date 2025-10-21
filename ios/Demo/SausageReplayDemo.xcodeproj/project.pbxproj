@@ -10,12 +10,12 @@
 		B1000001 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B1000000 /* AppDelegate.m */; };
 		B1000003 /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* SceneDelegate.m */; };
 		B1000005 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* ViewController.m */; };
-		B1000026 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B1000027 /* main.m */; };
 		B1000007 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B1000006 /* Main.storyboard */; };
 		B1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1000008 /* Assets.xcassets */; };
 		B100000B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B100000A /* LaunchScreen.storyboard */; };
 		B100000D /* SausageReplay.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B100000C /* SausageReplay.framework */; };
 		B100000F /* SausageReplay.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B100000C /* SausageReplay.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		B1000026 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B1000027 /* main.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,7 +53,6 @@
 		B1000000 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		B1000002 /* SceneDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
 		B1000004 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
-		B1000027 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B1000006 /* Main.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		B1000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000A /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -61,6 +60,7 @@
 		B1000011 /* SausageReplay.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SausageReplay.xcodeproj; path = ../SausageReplay.xcodeproj; sourceTree = "<group>"; };
 		B1000013 /* SausageReplayDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SausageReplayDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1000027 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

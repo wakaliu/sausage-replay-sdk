@@ -18,7 +18,7 @@ typedef NS_ENUM(NSInteger, SRVideoQualityPreset) {
     SRVideoQualityPresetUltra = 4       // 1440p30/60
 };
 
-// MARK: - 设备性能档位（保留兼容性）
+// MARK: - 设备性能档位（已废弃，保留兼容性）
 typedef NS_ENUM(NSInteger, SRDevicePerformanceTier) {
     SRDevicePerformanceTierMidRange = 0,  // 中端机（默认）
     SRDevicePerformanceTierHighEnd = 1    // 高端机
@@ -51,7 +51,7 @@ typedef NS_ENUM(NSInteger, SRRecordingStatus) {
 // MARK: - 录制配置
 @interface SRRecordingConfig : NSObject
 
-@property (nonatomic, assign) SRVideoQuality quality;           // 视频质量
+@property (nonatomic, assign) SRVideoQualityPreset qualityPreset; // 视频清晰度档位
 @property (nonatomic, assign) NSInteger maxDurationSeconds;     // 最大录制时长（秒）
 @property (nonatomic, assign) long long maxFileSizeBytes;       // 最大文件大小（字节）
 @property (nonatomic, assign) BOOL includeAudio;                // 是否包含音频
@@ -59,8 +59,6 @@ typedef NS_ENUM(NSInteger, SRRecordingStatus) {
 @property (nonatomic, copy, nullable) NSString *outputPath;     // 输出路径
 @property (nonatomic, assign, nullable) NSNumber *targetBitrate; // 目标比特率
 @property (nonatomic, assign) NSInteger targetFps;              // 目标帧率
-@property (nonatomic, assign) SRVideoQualityPreset qualityPreset; // 视频清晰度档位
-@property (nonatomic, assign) SRDevicePerformanceTier performanceTier; // 性能档位（保留兼容性）
 
 + (instancetype)defaultConfig;
 
@@ -110,7 +108,7 @@ typedef NS_ENUM(NSInteger, SRRecordingStatus) {
 
 @end
 
-// MARK: - 设备档位信息
+// MARK: - 设备档位信息（已废弃）
 @interface SRDeviceTierInfo : NSObject
 
 @property (nonatomic, assign) SRDevicePerformanceTier tier;     // 档位

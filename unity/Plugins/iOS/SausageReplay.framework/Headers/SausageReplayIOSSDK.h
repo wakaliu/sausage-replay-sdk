@@ -30,13 +30,6 @@ NS_ASSUME_NONNULL_BEGIN
 + (BOOL)initializeWithPreset:(SRVideoQualityPreset)preset;
 
 /**
- * 初始化SDK（兼容旧版本，使用设备性能档位）
- * @param tier 设备性能档位
- * @return 是否初始化成功
- */
-+ (BOOL)initializeWithTier:(SRDevicePerformanceTier)tier;
-
-/**
  * 检查平台支持
  * @return 是否支持
  */
@@ -59,11 +52,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (SRMemoryUsage *)getMemoryUsage;
 
-/**
- * 获取设备档位信息
- * @return 设备档位信息
- */
-+ (SRDeviceTierInfo *)getDeviceTierInfo;
 
 /**
  * 获取当前视频清晰度档位
@@ -83,11 +71,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (SRGifConversionParams *)getGifConversionParams;
 
-/**
- * 重新加载设备档位配置
- * @return 是否成功重新加载
- */
-+ (BOOL)reloadDeviceTierConfig;
 
 @end
 

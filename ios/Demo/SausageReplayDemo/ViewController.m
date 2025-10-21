@@ -337,8 +337,9 @@
     
     // 更新清晰度档位信息
     if (self.isInitialized) {
-        SRDeviceTierInfo *tierInfo = [SausageReplayIOSSDK getDeviceTierInfo];
-        self.presetLabel.text = [NSString stringWithFormat:@"清晰度档位: %@", tierInfo.tierName];
+        SRVideoQualityPreset currentPreset = [SausageReplayIOSSDK getCurrentPreset];
+        NSString *presetName = [self presetNameForPreset:currentPreset];
+        self.presetLabel.text = [NSString stringWithFormat:@"清晰度档位: %@", presetName];
     } else {
         self.presetLabel.text = @"清晰度档位: 未初始化";
     }
@@ -410,20 +411,17 @@
         
         // 更新UI状态
         
-        // 获取设备信息
-        SRDeviceTierInfo *tierInfo = [SausageReplayIOSSDK getDeviceTierInfo];
-        [self addLog:[NSString stringWithFormat:@"视频清晰度档位: %@", tierInfo.tierName]];
-        [self addLog:[NSString stringWithFormat:@"最大分辨率: %ldx%ld", (long)tierInfo.maxWidth, (long)tierInfo.maxHeight]];
-        [self addLog:[NSString stringWithFormat:@"目标帧率: %ld", (long)tierInfo.targetFps]];
-        [self addLog:[NSString stringWithFormat:@"视频比特率: %lld", tierInfo.videoBitrate]];
-        [self addLog:[NSString stringWithFormat:@"GIF支持: %@", tierInfo.gifSupported ? @"是" : @"否"]];
+        // 获取当前档位信息
+        SRVideoQualityPreset currentPreset = [SausageReplayIOSSDK getCurrentPreset];
+        [self addLog:[NSString stringWithFormat:@"当前视频清晰度档位: %@", presetName]];
+        [self addLog:[NSString stringWithFormat:@"档位值: %ld", (long)currentPreset]];
+        
+        // 检查GIF转换支持
+        BOOL gifSupported = [SausageReplayIOSSDK isGifConversionSupported];
+        [self addLog:[NSString stringWithFormat:@"GIF转换支持: %@", gifSupported ? @"是" : @"否"]];
         
         // 更新清晰度档位信息显示
-        self.presetLabel.text = [NSString stringWithFormat:@"清晰度档位: %@ (%@x%@@%ldfps)", 
-                                presetName, 
-                                @(tierInfo.maxWidth), 
-                                @(tierInfo.maxHeight), 
-                                (long)tierInfo.targetFps];
+        self.presetLabel.text = [NSString stringWithFormat:@"清晰度档位: %@", presetName];
     } else {
         [self addLog:@"❌ SDK初始化失败"];
     }
@@ -641,6 +639,8 @@
             return @"Ultra (1440p30)";
     }
 }
+
+#pragma mark - Helper Methods
 
 #pragma mark - Memory Management
 

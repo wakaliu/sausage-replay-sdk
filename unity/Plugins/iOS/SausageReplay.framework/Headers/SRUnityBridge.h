@@ -25,7 +25,6 @@ extern "C" {
 
 // SDK管理
 bool SausageReplaySDK_Initialize(int preset);
-bool SausageReplaySDK_InitializeWithTier(int tier); // 兼容旧版本
 bool SausageReplaySDK_IsPlatformSupported(void);
 const char* SausageReplaySDK_GetVersion(void);
 void SausageReplaySDK_Release(void);
@@ -46,10 +45,8 @@ bool SausageReplaySDK_RecoverFromError(void);
 void SausageReplaySDK_ResetStatus(void);
 
 // 高级功能
-const char* SausageReplaySDK_GetDeviceTierInfo(void);
 bool SausageReplaySDK_IsGifConversionSupported(void);
 const char* SausageReplaySDK_GetGifConversionParams(void);
-bool SausageReplaySDK_ReloadDeviceTierConfig(void);
 
 // 格式转换
 void SausageReplaySDK_ConvertVideoFormat(const char* inputPath, int outputFormat, void(*callback)(bool success, const char* outputPath));

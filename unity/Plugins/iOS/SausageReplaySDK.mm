@@ -7,6 +7,9 @@
 
 #import <Foundation/Foundation.h>
 #import <ReplayKit/ReplayKit.h>
+#import "SausageReplaySDK.h"
+
+// 导入iOS SDK头文件
 #import "SausageReplayIOSSDK.h"
 #import "SRRecordingManager.h"
 #import "SRPermissionManager.h"
@@ -95,57 +98,48 @@ static void InitializeCallback() {
     }
 }
 
+// 辅助函数
+static char* createCString(NSString *string) {
+    if (!string) return NULL;
+    
+    const char *cString = [string UTF8String];
+    size_t length = strlen(cString) + 1;
+    char *result = malloc(length);
+    if (result) {
+        strcpy(result, cString);
+    }
+    return result;
+}
+
 extern "C" {
     
     // MARK: - 初始化与基础功能
     
-    /// 初始化SDK
-    /// @param preset 视频清晰度档位 (0=Basic, 1=Standard, 2=Smooth, 3=HighFps, 4=Ultra)
-    /// @return 是否初始化成功
     bool SausageReplaySDK_Initialize(int preset) {
         InitializeCallback();
         SRVideoQualityPreset qualityPreset = (SRVideoQualityPreset)preset;
         return [SausageReplayIOSSDK initializeWithPreset:qualityPreset];
     }
     
-    /// 使用设备性能档位初始化SDK（兼容性方法）
-    /// @param tier 设备性能档位 (0=MidRange, 1=HighEnd)
-    /// @return 是否初始化成功
-    bool SausageReplaySDK_InitializeWithTier(int tier) {
-        InitializeCallback();
-        SRDevicePerformanceTier deviceTier = (SRDevicePerformanceTier)tier;
-        return [SausageReplayIOSSDK initializeWithTier:deviceTier];
-    }
-    
-    /// 检查平台支持
-    /// @return 是否支持屏幕录制
     bool SausageReplaySDK_IsPlatformSupported() {
         return [SausageReplayIOSSDK isPlatformSupported];
     }
     
-    /// 获取SDK版本
-    /// @return 版本字符串
     const char* SausageReplaySDK_GetVersion() {
         NSString* version = [SausageReplayIOSSDK version];
-        return strdup([version UTF8String]);
+        return createCString(version);
     }
     
-    /// 释放SDK资源
     void SausageReplaySDK_Release() {
-        [SausageReplayIOSSDK release];
+        [SausageReplayIOSSDK releaseResources];
     }
     
-    /// 获取当前视频清晰度档位
-    /// @return 当前档位
     int SausageReplaySDK_GetCurrentPreset() {
         return (int)[SausageReplayIOSSDK getCurrentPreset];
     }
     
     // MARK: - 录制控制
     
-    /// 开始录制
-    /// @param configJson 录制配置JSON字符串
-    /// @return 是否开始成功
     bool SausageReplaySDK_StartRecording(const char* configJson) {
         if (!configJson) return false;
         
@@ -184,36 +178,26 @@ extern "C" {
         return [SRRecordingManager startRecordingWithConfig:config callback:g_recordingCallback];
     }
     
-    /// 停止录制
     void SausageReplaySDK_StopRecording() {
         [SRRecordingManager stopRecording:^(SRRecordingResult *result) {
             // 结果通过回调处理
         }];
     }
     
-    /// 暂停录制
-    /// @return 是否暂停成功
     bool SausageReplaySDK_PauseRecording() {
         return [SRRecordingManager pauseRecording];
     }
     
-    /// 恢复录制
-    /// @return 是否恢复成功
     bool SausageReplaySDK_ResumeRecording() {
         return [SRRecordingManager resumeRecording];
     }
     
-    /// 获取录制状态
-    /// @return 录制状态 (0=Idle, 1=Starting, 2=Recording, 3=Paused, 4=Stopping)
     int SausageReplaySDK_GetRecordingStatus() {
         return (int)[SRRecordingManager status];
     }
     
     // MARK: - 质量调整
     
-    /// 调整录制质量
-    /// @param quality 目标质量 (0=LOW, 1=MEDIUM, 2=HIGH)
-    /// @return 是否调整成功
     bool SausageReplaySDK_AdjustRecordingQuality(int quality) {
         SRVideoQuality videoQuality = (SRVideoQuality)quality;
         return [SRRecordingManager adjustRecordingQuality:videoQuality];
@@ -221,11 +205,9 @@ extern "C" {
     
     // MARK: - 状态监控
     
-    /// 获取详细状态
-    /// @return 详细状态JSON字符串
     const char* SausageReplaySDK_GetDetailedStatus() {
         SRDetailedStatus* status = [SRRecordingManager getDetailedStatus];
-        if (!status) return strdup("{}");
+        if (!status) return createCString(@"{}");
         
         NSDictionary* statusDict = @{
             @"status": @(status.status),
@@ -239,17 +221,15 @@ extern "C" {
         
         NSError* error;
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:statusDict options:0 error:&error];
-        if (error) return strdup("{}");
+        if (error) return createCString(@"{}");
         
         NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return strdup([jsonString UTF8String]);
+        return createCString(jsonString);
     }
     
-    /// 获取内存使用情况
-    /// @return 内存使用JSON字符串
     const char* SausageReplaySDK_GetMemoryUsage() {
         SRMemoryUsage* memoryUsage = [SausageReplayIOSSDK getMemoryUsage];
-        if (!memoryUsage) return strdup("{}");
+        if (!memoryUsage) return createCString(@"{}");
         
         NSDictionary* memoryDict = @{
             @"usedMemory": @(memoryUsage.usedMemory),
@@ -259,90 +239,48 @@ extern "C" {
         
         NSError* error;
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:memoryDict options:0 error:&error];
-        if (error) return strdup("{}");
+        if (error) return createCString(@"{}");
         
         NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return strdup([jsonString UTF8String]);
+        return createCString(jsonString);
     }
     
     // MARK: - 错误恢复
     
-    /// 从错误中恢复
-    /// @return 是否恢复成功
     bool SausageReplaySDK_RecoverFromError() {
         return [SRRecordingManager recoverFromError];
     }
     
-    /// 重置状态
     void SausageReplaySDK_ResetStatus() {
         [SRRecordingManager resetStatus];
     }
     
-    // MARK: - 设备信息
-    
-    /// 获取设备档位信息
-    /// @return 设备信息JSON字符串
-    const char* SausageReplaySDK_GetDeviceTierInfo() {
-        SRDeviceTierInfo* tierInfo = [SausageReplayIOSSDK getDeviceTierInfo];
-        if (!tierInfo) return strdup("{}");
-        
-        NSDictionary* tierDict = @{
-            @"tierName": tierInfo.tierName ?: @"",
-            @"maxWidth": @(tierInfo.maxWidth),
-            @"maxHeight": @(tierInfo.maxHeight),
-            @"targetFps": @(tierInfo.targetFps),
-            @"videoBitrate": @(tierInfo.videoBitrate),
-            @"gifSupported": @(tierInfo.gifSupported)
-        };
-        
-        NSError* error;
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:tierDict options:0 error:&error];
-        if (error) return strdup("{}");
-        
-        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return strdup([jsonString UTF8String]);
-    }
-    
     // MARK: - 格式转换
     
-    /// 检查GIF转换支持
-    /// @return 是否支持GIF转换
     bool SausageReplaySDK_IsGifConversionSupported() {
         return [SausageReplayIOSSDK isGifConversionSupported];
     }
     
-    /// 获取GIF转换参数
-    /// @return GIF转换参数JSON字符串
     const char* SausageReplaySDK_GetGifConversionParams() {
         SRGifConversionParams* params = [SausageReplayIOSSDK getGifConversionParams];
-        if (!params) return strdup("{}");
+        if (!params) return createCString(@"{}");
         
         NSDictionary* paramsDict = @{
             @"maxWidth": @(params.maxWidth),
             @"maxHeight": @(params.maxHeight),
-            @"maxFrames": @(params.maxFrames),
-            @"frameRate": @(params.frameRate),
-            @"quality": @(params.quality)
+            @"maxFrames": @(params.maxFps),
+            @"frameRate": @(params.maxFps),
+            @"quality": @(params.maxDurationSeconds)
         };
         
         NSError* error;
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:paramsDict options:0 error:&error];
-        if (error) return strdup("{}");
+        if (error) return createCString(@"{}");
         
         NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return strdup([jsonString UTF8String]);
+        return createCString(jsonString);
     }
     
-    /// 重新加载设备档位配置
-    /// @return 是否重新加载成功
-    bool SausageReplaySDK_ReloadDeviceTierConfig() {
-        return [SausageReplayIOSSDK reloadDeviceTierConfig];
-    }
-    
-    /// 转换视频格式
-    /// @param inputPath 输入文件路径
-    /// @param outputFormat 输出格式 (0=MP4, 1=GIF, 2=WEBM, 3=AVI)
-    /// @param callback 转换完成回调
     void SausageReplaySDK_ConvertVideoFormat(const char* inputPath, int outputFormat, void* callback) {
         if (!inputPath) return;
         
@@ -361,62 +299,16 @@ extern "C" {
     
     // MARK: - 权限管理
     
-    /// 检查麦克风权限
-    /// @return 是否有麦克风权限
     bool SausageReplaySDK_HasMicrophonePermission() {
         return [SRPermissionManager hasMicrophonePermission];
     }
     
-    /// 请求麦克风权限
-    /// @param callback 权限请求回调
     void SausageReplaySDK_RequestMicrophonePermission(void* callback) {
         [SRPermissionManager requestMicrophonePermission:^(BOOL granted) {
             if (callback) {
                 ((void(*)(bool))callback)(granted);
             }
         }];
-    }
-    
-    // MARK: - Unity回调注册
-    
-    /// 注册录制开始回调
-    void SausageReplaySDK_RegisterOnRecordingStarted(UnityCallback callback) {
-        g_onRecordingStarted = callback;
-    }
-    
-    /// 注册录制进度回调
-    void SausageReplaySDK_RegisterOnRecordingProgress(UnityCallbackWithLongLong callback) {
-        g_onRecordingProgress = callback;
-    }
-    
-    /// 注册录制暂停回调
-    void SausageReplaySDK_RegisterOnRecordingPaused(UnityCallback callback) {
-        g_onRecordingPaused = callback;
-    }
-    
-    /// 注册录制恢复回调
-    void SausageReplaySDK_RegisterOnRecordingResumed(UnityCallback callback) {
-        g_onRecordingResumed = callback;
-    }
-    
-    /// 注册录制停止回调
-    void SausageReplaySDK_RegisterOnRecordingStopped(void (*callback)(bool, const char*, long long, float)) {
-        g_onRecordingStopped = callback;
-    }
-    
-    /// 注册录制错误回调
-    void SausageReplaySDK_RegisterOnRecordingError(UnityCallbackWithIntString callback) {
-        g_onRecordingError = callback;
-    }
-    
-    /// 注册质量调整回调
-    void SausageReplaySDK_RegisterOnRecordingQualityAdjusted(UnityCallbackWithInt callback) {
-        g_onRecordingQualityAdjusted = callback;
-    }
-    
-    /// 注册转换完成回调
-    void SausageReplaySDK_RegisterOnConvertCompleted(UnityCallbackWithBoolString callback) {
-        g_onConvertCompleted = callback;
     }
     
 }
