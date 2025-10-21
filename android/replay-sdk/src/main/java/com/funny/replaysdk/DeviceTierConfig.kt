@@ -6,8 +6,8 @@ import org.json.JSONObject
 import java.io.IOException
 
 /**
- * 设备档位配置管理类
- * 负责加载和管理不同设备档位的录制参数配置
+ * 视频清晰度档位配置管理类
+ * 负责加载和管理不同视频清晰度档位的录制参数配置
  */
 object DeviceTierConfig {
     
@@ -38,27 +38,28 @@ object DeviceTierConfig {
     }
     
     /**
-     * 获取设备档位配置
+     * 获取视频清晰度档位配置
      */
-    fun getTierConfig(tier: Int): TierConfig? {
+    fun getPresetConfig(preset: Int): TierConfig? {
         if (!isLoaded || configData == null) {
             Log.w(TAG, "Config not loaded, using default values")
-            return getDefaultTierConfig(tier)
+            return getDefaultPresetConfig(preset)
         }
         
         return try {
-            val tierName = when (tier) {
-                DevicePerformanceTier.LOW_END -> "LOW_END"
-                DevicePerformanceTier.MID_RANGE -> "MID_RANGE"
-                DevicePerformanceTier.HIGH_END -> "HIGH_END"
-                DevicePerformanceTier.FLAGSHIP -> "FLAGSHIP"
-                else -> "MID_RANGE"
+            val presetName = when (preset) {
+                VideoQualityPreset.BASIC -> "BASIC"
+                VideoQualityPreset.STANDARD -> "STANDARD"
+                VideoQualityPreset.SMOOTH -> "SMOOTH"
+                VideoQualityPreset.HIGH_FPS -> "HIGH_FPS"
+                VideoQualityPreset.ULTRA -> "ULTRA"
+                else -> "STANDARD"
             }
-            val tierJson = configData!!.getJSONObject("deviceTiers").getJSONObject(tierName)
-            parseTierConfig(tierJson)
+            val presetJson = configData!!.getJSONObject("videoQualityPresets").getJSONObject(presetName)
+            parseTierConfig(presetJson)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to get tier config for $tier", e)
-            getDefaultTierConfig(tier)
+            Log.e(TAG, "Failed to get preset config for $preset", e)
+            getDefaultPresetConfig(preset)
         }
     }
     
@@ -180,29 +181,13 @@ object DeviceTierConfig {
         )
     }
     
-    private fun getDefaultTierConfig(tier: Int): TierConfig {
-        return when (tier) {
-            DevicePerformanceTier.LOW_END -> TierConfig(
-                name = "低端机",
+    private fun getDefaultPresetConfig(preset: Int): TierConfig {
+        return when (preset) {
+            VideoQualityPreset.BASIC -> TierConfig(
+                name = "基础清晰度",
                 maxResolution = Resolution(1280, 720),
-                targetFps = FpsRange(25, 30, 30),
-                videoBitrate = BitrateRange(4000000, 6000000, 5000000),
-                audioBitrate = BitrateRange(128000, 192000, 128000),
-                audioSampleRate = 44100,
-                keyFrameInterval = 2,
-                encodingProfile = "MAIN",
-                bufferDepth = 3,
-                threadCount = 2,
-                gifStrategy = GifStrategy(false, 8, Resolution(854, 480), 10),
-                ioStrategy = "SERIAL_SMALL_BUFFER",
-                logLevel = "WARN",
-                adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
-            )
-            DevicePerformanceTier.MID_RANGE -> TierConfig(
-                name = "中端机",
-                maxResolution = Resolution(1920, 1080),
                 targetFps = FpsRange(30, 30, 30),
-                videoBitrate = BitrateRange(8000000, 12000000, 10000000),
+                videoBitrate = BitrateRange(4000000, 5000000, 4500000),
                 audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
                 keyFrameInterval = 1,
@@ -214,11 +199,43 @@ object DeviceTierConfig {
                 logLevel = "INFO",
                 adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
             )
-            DevicePerformanceTier.HIGH_END -> TierConfig(
-                name = "高端机",
+            VideoQualityPreset.STANDARD -> TierConfig(
+                name = "标准清晰度",
                 maxResolution = Resolution(1920, 1080),
-                targetFps = FpsRange(30, 60, 30),
-                videoBitrate = BitrateRange(12000000, 18000000, 15000000),
+                targetFps = FpsRange(30, 30, 30),
+                videoBitrate = BitrateRange(7000000, 9000000, 8000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
+                audioSampleRate = 48000,
+                keyFrameInterval = 1,
+                encodingProfile = "HIGH",
+                bufferDepth = 6,
+                threadCount = 3,
+                gifStrategy = GifStrategy(true, 10, Resolution(1280, 720), 15),
+                ioStrategy = "SERIAL_MEDIUM_BUFFER",
+                logLevel = "INFO",
+                adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
+            )
+            VideoQualityPreset.SMOOTH -> TierConfig(
+                name = "流畅清晰度",
+                maxResolution = Resolution(1280, 720),
+                targetFps = FpsRange(60, 60, 60),
+                videoBitrate = BitrateRange(6000000, 8000000, 7000000),
+                audioBitrate = BitrateRange(128000, 192000, 128000),
+                audioSampleRate = 48000,
+                keyFrameInterval = 1,
+                encodingProfile = "HIGH",
+                bufferDepth = 8,
+                threadCount = 4,
+                gifStrategy = GifStrategy(true, 12, Resolution(1280, 720), 20),
+                ioStrategy = "ASYNC_DOUBLE_BUFFER",
+                logLevel = "DEBUG",
+                adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
+            )
+            VideoQualityPreset.HIGH_FPS -> TierConfig(
+                name = "高帧率清晰度",
+                maxResolution = Resolution(1920, 1080),
+                targetFps = FpsRange(60, 60, 60),
+                videoBitrate = BitrateRange(12000000, 16000000, 14000000),
                 audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
                 keyFrameInterval = 1,
@@ -230,16 +247,16 @@ object DeviceTierConfig {
                 logLevel = "DEBUG",
                 adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
             )
-            DevicePerformanceTier.FLAGSHIP -> TierConfig(
-                name = "旗舰机",
-                maxResolution = Resolution(1920, 1080),
+            VideoQualityPreset.ULTRA -> TierConfig(
+                name = "超高清清晰度",
+                maxResolution = Resolution(2560, 1440),
                 targetFps = FpsRange(30, 60, 30),
-                videoBitrate = BitrateRange(15000000, 25000000, 20000000),
+                videoBitrate = BitrateRange(18000000, 22000000, 20000000),
                 audioBitrate = BitrateRange(128000, 192000, 128000),
                 audioSampleRate = 48000,
                 keyFrameInterval = 1,
                 encodingProfile = "HIGH",
-                bufferDepth = 14,
+                bufferDepth = 12,
                 threadCount = 6,
                 gifStrategy = GifStrategy(true, 15, Resolution(1920, 1080), 30),
                 ioStrategy = "ASYNC_DOUBLE_BUFFER",
@@ -247,18 +264,18 @@ object DeviceTierConfig {
                 adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
             )
             else -> TierConfig(
-                name = "中端机",
+                name = "标准清晰度",
                 maxResolution = Resolution(1920, 1080),
                 targetFps = FpsRange(30, 30, 30),
-                videoBitrate = BitrateRange(8000000, 12000000, 10000000),
+                videoBitrate = BitrateRange(7000000, 9000000, 8000000),
                 audioBitrate = BitrateRange(128000, 192000, 128000),
-                audioSampleRate = 44100,
+                audioSampleRate = 48000,
                 keyFrameInterval = 1,
                 encodingProfile = "HIGH",
-                bufferDepth = 8,
-                threadCount = 4,
-                gifStrategy = GifStrategy(true, 12, Resolution(1280, 720), 20),
-                ioStrategy = "ASYNC_SINGLE_BUFFER",
+                bufferDepth = 6,
+                threadCount = 3,
+                gifStrategy = GifStrategy(true, 10, Resolution(1280, 720), 15),
+                ioStrategy = "SERIAL_MEDIUM_BUFFER",
                 logLevel = "INFO",
                 adaptiveThresholds = AdaptiveThresholds(0.03, 200, 500, 10)
             )
@@ -279,7 +296,7 @@ object DeviceTierConfig {
 }
 
 /**
- * 设备档位配置数据类
+ * 视频清晰度档位配置数据类
  */
 data class TierConfig(
     val name: String,

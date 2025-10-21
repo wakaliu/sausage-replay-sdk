@@ -115,24 +115,38 @@
         android:gravity="center">
         
         <Button
-            android:id="@+id/btn_quality_high"
+            android:id="@+id/btn_preset_basic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="高质量"
+            android:text="基础(720p30)"
             android:layout_marginEnd="8dp" />
             
         <Button
-            android:id="@+id/btn_quality_medium"
+            android:id="@+id/btn_preset_standard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="中质量"
+            android:text="标准(1080p30)"
             android:layout_marginEnd="8dp" />
             
         <Button
-            android:id="@+id/btn_quality_low"
+            android:id="@+id/btn_preset_smooth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="低质量" />
+            android:text="流畅(720p60)"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_preset_high_fps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="高帧(1080p60)"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_preset_ultra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="超清(1440p)" />
     </LinearLayout>
 
     <View

@@ -15,14 +15,15 @@ namespace SausageReplay
         #region 枚举定义
 
         /// <summary>
-        /// 设备性能档位
+        /// 视频清晰度档位
         /// </summary>
-        public enum DevicePerformanceTier
+        public enum VideoQualityPreset
         {
-            LOW_END = 0,    // 低端设备
-            MID_RANGE = 1,  // 中端设备
-            HIGH_END = 2,   // 高端设备
-            FLAGSHIP = 3    // 旗舰设备
+            Basic = 0,      // 720p30
+            Standard = 1,   // 1080p30
+            Smooth = 2,     // 720p60
+            HighFPS = 3,    // 1080p60
+            Ultra = 4       // 1440p30/60
         }
 
         /// <summary>
@@ -76,7 +77,7 @@ namespace SausageReplay
             public string outputPath = null;
             public int? targetBitrate = null;
             public int targetFps = 30;
-            public DevicePerformanceTier performanceTier = DevicePerformanceTier.MID_RANGE;
+            public int performanceTier = 1; // 默认使用 STANDARD 档位
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace SausageReplay
         [Serializable]
         public class DeviceTierInfo
         {
-            public DevicePerformanceTier tier;
+            public int tier;
             public string tierName;
             public int maxWidth;
             public int maxHeight;
@@ -322,9 +323,9 @@ namespace SausageReplay
         /// <summary>
         /// 初始化SDK
         /// </summary>
-        /// <param name="tier">设备性能档位</param>
+        /// <param name="preset">视频清晰度档位</param>
         /// <returns>是否初始化成功</returns>
-        public static bool Initialize(DevicePerformanceTier tier = DevicePerformanceTier.MID_RANGE)
+        public static bool Initialize(VideoQualityPreset preset = VideoQualityPreset.Standard)
         {
             if (_isInitialized)
             {
@@ -340,11 +341,11 @@ namespace SausageReplay
 
             try
             {
-                bool result = SausageReplaySDK_Initialize((int)tier);
+                bool result = SausageReplaySDK_Initialize((int)preset);
                 if (result)
                 {
                     _isInitialized = true;
-                    Debug.Log($"SausageReplaySDK initialized successfully with tier: {tier}");
+                    Debug.Log($"SausageReplaySDK initialized successfully with preset: {preset}");
                 }
                 else
                 {

@@ -6,14 +6,14 @@ import android.util.Log
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * 设备档位管理器
- * 负责设备档位检测、配置管理和自适应控制
+ * 视频清晰度档位管理器
+ * 负责视频清晰度档位配置管理和自适应控制
  */
 object DeviceTierManager {
     
     private const val TAG = "DeviceTierManager"
     
-    private var currentTier = AtomicReference(DevicePerformanceTier.MID_RANGE)
+    private var currentTier = AtomicReference(1) // 默认使用 STANDARD 档位
     private var tierConfig: TierConfig? = null
     private var adaptiveStrategies: AdaptiveStrategies? = null
     private var performanceMonitor: PerformanceMonitor? = null
@@ -34,7 +34,7 @@ object DeviceTierManager {
             currentTier.set(detectedTier)
             
             // 获取档位配置
-            tierConfig = DeviceTierConfig.getTierConfig(detectedTier)
+            tierConfig = DeviceTierConfig.getPresetConfig(detectedTier)
             adaptiveStrategies = DeviceTierConfig.getAdaptiveStrategies()
             
             Log.i(TAG, "Device tier manager initialized: ${tierConfig?.name} (${detectedTier})")
@@ -47,30 +47,30 @@ object DeviceTierManager {
     }
     
     /**
-     * 使用整型标识初始化设备档位管理器，完全避免枚举依赖
+     * 使用视频清晰度档位初始化设备档位管理器
      * @param context 应用上下文
-     * @param tierValue 设备性能档位整型值 (0=LOW_END, 1=MID_RANGE, 2=HIGH_END, 3=FLAGSHIP)
+     * @param preset 视频清晰度档位整型值 (0=BASIC, 1=STANDARD, 2=SMOOTH, 3=HIGH_FPS, 4=ULTRA)
      * @return 是否初始化成功
      */
-    fun initializeWithTierValue(context: Context, tierValue: Int): Boolean {
+    fun initializeWithPreset(context: Context, preset: Int): Boolean {
         return try {
-            Log.d(TAG, "initializeWithTierValue called with tierValue: $tierValue")
+            Log.d(TAG, "initializeWithPreset called with preset: $preset")
             
             // 加载配置文件
             if (!DeviceTierConfig.loadConfig(context)) {
                 Log.w(TAG, "Failed to load config, using default values")
             }
             
-            // 直接使用整型值，无需转换
-            currentTier.set(tierValue)
-            tierConfig = DeviceTierConfig.getTierConfig(tierValue)
+            // 直接使用视频清晰度档位
+            currentTier.set(preset)
+            tierConfig = DeviceTierConfig.getPresetConfig(preset)
             adaptiveStrategies = DeviceTierConfig.getAdaptiveStrategies()
             
-            Log.i(TAG, "Device tier manager initialized with tierValue: $tierValue")
+            Log.i(TAG, "Device tier manager initialized with preset: $preset")
             isInitialized = true
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize device tier manager with tierValue: $tierValue", e)
+            Log.e(TAG, "Failed to initialize device tier manager with preset: $preset", e)
             false
         }
     }
@@ -209,14 +209,14 @@ object DeviceTierManager {
             val score = calculateDeviceScore(metrics, totalMemory, cpuCores)
             
             when {
-                score >= 80 -> DevicePerformanceTier.FLAGSHIP
-                score >= 60 -> DevicePerformanceTier.HIGH_END
-                score >= 40 -> DevicePerformanceTier.MID_RANGE
-                else -> DevicePerformanceTier.LOW_END
+                score >= 80 -> VideoQualityPreset.ULTRA
+                score >= 60 -> VideoQualityPreset.HIGH_FPS
+                score >= 40 -> VideoQualityPreset.STANDARD
+                else -> VideoQualityPreset.BASIC
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to detect device tier, using default", e)
-            DevicePerformanceTier.MID_RANGE
+            VideoQualityPreset.STANDARD
         }
     }
     

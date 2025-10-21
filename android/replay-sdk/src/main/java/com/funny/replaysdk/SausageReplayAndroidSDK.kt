@@ -22,34 +22,35 @@ import android.os.Looper
 import android.os.HandlerThread
 import java.util.concurrent.atomic.AtomicReference
 
-object DevicePerformanceTier {
-    const val LOW_END = 0
-    const val MID_RANGE = 1
-    const val HIGH_END = 2
-    const val FLAGSHIP = 3
+object VideoQualityPreset {
+    const val BASIC = 0      // 720p30
+    const val STANDARD = 1   // 1080p30
+    const val SMOOTH = 2     // 720p60
+    const val HIGH_FPS = 3   // 1080p60
+    const val ULTRA = 4      // 1440p30/60
 }
 
 object SausageReplayAndroidSDK {
     @JvmStatic
-    fun initialize(context: Context, tier: Int = DevicePerformanceTier.MID_RANGE): Boolean {
-        android.util.Log.d("SausageReplayAndroidSDK", "Main initialize method called with tier: $tier")
+    fun initialize(context: Context, preset: Int = VideoQualityPreset.STANDARD): Boolean {
+        android.util.Log.d("SausageReplayAndroidSDK", "Main initialize method called with preset: $preset")
         android.util.Log.d("SausageReplayAndroidSDK", "Context: ${context.javaClass.simpleName}")
         
         try {
-            // 直接初始化设备档位管理器，传递整型而不是枚举
-            android.util.Log.d("SausageReplayAndroidSDK", "Initializing DeviceTierManager with tierValue...")
-            if (!DeviceTierManager.initializeWithTierValue(context, tier)) {
+            // 直接初始化设备档位管理器，传递视频清晰度档位
+            android.util.Log.d("SausageReplayAndroidSDK", "Initializing DeviceTierManager with preset...")
+            if (!DeviceTierManager.initializeWithPreset(context, preset)) {
                 android.util.Log.e("SausageReplayAndroidSDK", "Failed to initialize device tier manager")
                 return false
             }
             android.util.Log.d("SausageReplayAndroidSDK", "DeviceTierManager initialized successfully")
             
-            // 设置状态（使用整型标识）
-            StateHolder.deviceTierValue = tier
+            // 设置状态（使用视频清晰度档位）
+            StateHolder.deviceTierValue = preset
             StateHolder.appContext = context.applicationContext
-            android.util.Log.d("SausageReplayAndroidSDK", "StateHolder updated with tierValue: $tier")
+            android.util.Log.d("SausageReplayAndroidSDK", "StateHolder updated with preset: $preset")
             
-            android.util.Log.i("SausageReplayAndroidSDK", "SDK initialized successfully with tierValue: $tier")
+            android.util.Log.i("SausageReplayAndroidSDK", "SDK initialized successfully with preset: $preset")
             return true
         } catch (e: Exception) {
             android.util.Log.e("SausageReplayAndroidSDK", "Failed to initialize SDK", e)
@@ -60,39 +61,43 @@ object SausageReplayAndroidSDK {
 
     
     /**
-     * 兼容重载：使用字符串传递设备档位，内部转换为整型
-     * 可接受的值：LOW_END / MID_RANGE / HIGH_END / FLAGSHIP（大小写不敏感）
+     * 兼容重载：使用字符串传递视频清晰度档位，内部转换为整型
+     * 可接受的值：BASIC / STANDARD / SMOOTH / HIGH_FPS / ULTRA（大小写不敏感）
      */
     @JvmStatic
-    fun initialize(context: Context, tierName: String): Boolean {
-        android.util.Log.d("SausageReplayAndroidSDK", "initialize(Context, String) called with tierName: '$tierName'")
+    fun initialize(context: Context, presetName: String): Boolean {
+        android.util.Log.d("SausageReplayAndroidSDK", "initialize(Context, String) called with presetName: '$presetName'")
         
         // 将字符串转换为整型标识
-        val tierValue = when (tierName.uppercase()) {
-            "LOW_END" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped tierName '$tierName' to tierValue: 0")
+        val presetValue = when (presetName.uppercase()) {
+            "BASIC" -> {
+                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 0")
                 0
             }
-            "MID_RANGE" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped tierName '$tierName' to tierValue: 1")
+            "STANDARD" -> {
+                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 1")
                 1
             }
-            "HIGH_END" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped tierName '$tierName' to tierValue: 2")
+            "SMOOTH" -> {
+                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 2")
                 2
             }
-            "FLAGSHIP" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped tierName '$tierName' to tierValue: 3")
+            "HIGH_FPS" -> {
+                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 3")
                 3
             }
+            "ULTRA" -> {
+                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 4")
+                4
+            }
             else -> {
-                android.util.Log.w("SausageReplayAndroidSDK", "Invalid tierName: '$tierName', using tierValue: 1 (MID_RANGE)")
+                android.util.Log.w("SausageReplayAndroidSDK", "Invalid presetName: '$presetName', using presetValue: 1 (STANDARD)")
                 1
             }
         }
         
-        android.util.Log.d("SausageReplayAndroidSDK", "Calling initialize(Context, Int) with tierValue: $tierValue")
-        return initialize(context, tierValue)
+        android.util.Log.d("SausageReplayAndroidSDK", "Calling initialize(Context, Int) with presetValue: $presetValue")
+        return initialize(context, presetValue)
     }
 
     @JvmStatic
@@ -258,7 +263,7 @@ data class RecordingConfig(
     val outputPath: String? = null,
     val targetBitrate: Int? = null,
     val targetFps: Int = 30,
-        val performanceTier: Int = DevicePerformanceTier.MID_RANGE
+        val performanceTier: Int = VideoQualityPreset.STANDARD
 )
 
 object VideoQuality {
@@ -329,53 +334,53 @@ object RecordingManager {
     }
     
     /**
-     * 根据设备档位自动生成录制配置
+     * 根据视频清晰度档位自动生成录制配置
      */
-    private fun generateRecordingConfigFromDeviceTier(): RecordingConfig {
-        val deviceTier = StateHolder.deviceTierValue
+    private fun generateRecordingConfigFromPreset(): RecordingConfig {
+        val preset = StateHolder.deviceTierValue
+        
+        android.util.Log.d("RecordingManager", "Generating config for video quality preset: $preset")
+        
+        // 从配置文件获取档位配置
         val tierConfig = DeviceTierManager.getCurrentTierConfig()
-        
-        android.util.Log.d("RecordingManager", "Generating config for device tier: $deviceTier")
-        
-        // 根据设备档位设置默认质量
-        val defaultQuality = when (deviceTier) {
-            DevicePerformanceTier.LOW_END -> VideoQuality.LOW
-            DevicePerformanceTier.MID_RANGE -> VideoQuality.MEDIUM
-            DevicePerformanceTier.HIGH_END -> VideoQuality.HIGH
-            DevicePerformanceTier.FLAGSHIP -> VideoQuality.HIGH
-            else -> VideoQuality.MEDIUM
+        if (tierConfig != null) {
+            android.util.Log.d("RecordingManager", "Using config from file: ${tierConfig.name}")
+            
+            // 根据配置文件的参数生成 RecordingConfig
+            val videoQuality = when (preset) {
+                VideoQualityPreset.BASIC -> VideoQuality.MEDIUM
+                VideoQualityPreset.STANDARD -> VideoQuality.HIGH
+                VideoQualityPreset.SMOOTH -> VideoQuality.MEDIUM
+                VideoQualityPreset.HIGH_FPS -> VideoQuality.HIGH
+                VideoQualityPreset.ULTRA -> VideoQuality.HIGH
+                else -> VideoQuality.HIGH
+            }
+            
+            return RecordingConfig(
+                quality = videoQuality,
+                maxDurationSeconds = 60,
+                maxFileSizeBytes = 100L * 1024 * 1024, // 默认100MB，可根据需要调整
+                includeAudio = true,
+                outputFormat = OutputFormat.MP4,
+                targetBitrate = tierConfig.videoBitrate.default.toInt(),
+                targetFps = tierConfig.targetFps.default,
+                performanceTier = preset
+            )
+        } else {
+            android.util.Log.w("RecordingManager", "Failed to get tier config, using default values")
+            
+            // 降级到默认配置
+            return RecordingConfig(
+                quality = VideoQuality.HIGH,
+                maxDurationSeconds = 60,
+                maxFileSizeBytes = 100L * 1024 * 1024,
+                includeAudio = true,
+                outputFormat = OutputFormat.MP4,
+                targetBitrate = 8000000,
+                targetFps = 30,
+                performanceTier = VideoQualityPreset.STANDARD
+            )
         }
-        
-        // 根据设备档位设置默认参数
-        val maxDurationSeconds = when (deviceTier) {
-            DevicePerformanceTier.LOW_END -> 30
-            DevicePerformanceTier.MID_RANGE -> 60
-            DevicePerformanceTier.HIGH_END -> 120
-            DevicePerformanceTier.FLAGSHIP -> 300
-            else -> 60
-        }
-        
-        val maxFileSizeBytes = when (deviceTier) {
-            DevicePerformanceTier.LOW_END -> 20L * 1024 * 1024  // 20MB
-            DevicePerformanceTier.MID_RANGE -> 50L * 1024 * 1024  // 50MB
-            DevicePerformanceTier.HIGH_END -> 100L * 1024 * 1024  // 100MB
-            DevicePerformanceTier.FLAGSHIP -> 200L * 1024 * 1024  // 200MB
-            else -> 50L * 1024 * 1024
-        }
-        
-        val targetFps = tierConfig?.targetFps?.default ?: 30
-        
-        return RecordingConfig(
-            quality = defaultQuality,
-            maxDurationSeconds = maxDurationSeconds,
-            maxFileSizeBytes = maxFileSizeBytes,
-            includeAudio = true,
-            outputFormat = OutputFormat.MP4,
-            outputPath = null, // 使用默认路径
-            targetBitrate = null, // 由设备档位管理器自动计算
-            targetFps = targetFps,
-            performanceTier = deviceTier
-        )
     }
     
     @JvmStatic
@@ -393,8 +398,8 @@ object RecordingManager {
                 return@enqueueTaskWithResult false
             }
             
-            // 根据设备档位自动生成录制配置
-            val config = generateRecordingConfigFromDeviceTier()
+            // 根据视频清晰度档位自动生成录制配置
+            val config = generateRecordingConfigFromPreset()
             android.util.Log.d("RecordingManager", "Auto-generated config: $config")
             
             StateHolder.status.set(RecordingStatus.STOPPING) // 临时占位，避免重复点击
@@ -999,11 +1004,12 @@ object RecordingManager {
                 
                 // 根据设备档位计算录制参数
                 val defaultQuality = when (deviceTierValue) {
-                    DevicePerformanceTier.LOW_END -> VideoQuality.LOW
-                    DevicePerformanceTier.MID_RANGE -> VideoQuality.MEDIUM
-                    DevicePerformanceTier.HIGH_END -> VideoQuality.HIGH
-                    DevicePerformanceTier.FLAGSHIP -> VideoQuality.HIGH
-                    else -> VideoQuality.MEDIUM
+                    VideoQualityPreset.BASIC -> VideoQuality.MEDIUM
+                    VideoQualityPreset.STANDARD -> VideoQuality.HIGH
+                    VideoQualityPreset.SMOOTH -> VideoQuality.MEDIUM
+                    VideoQualityPreset.HIGH_FPS -> VideoQuality.HIGH
+                    VideoQualityPreset.ULTRA -> VideoQuality.HIGH
+                    else -> VideoQuality.HIGH
                 }
                 
                 val recordingParams = DeviceTierManager.calculateRecordingParams(
@@ -1225,8 +1231,8 @@ private object CallbackStore {
 
 private object StateHolder {
     var appContext: Context? = null
-    var deviceTier: Int = DevicePerformanceTier.MID_RANGE
-    var deviceTierValue: Int = 1  // 新增：整型设备档位标识 (0=LOW_END, 1=MID_RANGE, 2=HIGH_END, 3=FLAGSHIP)
+    var deviceTier: Int = VideoQualityPreset.STANDARD
+    var deviceTierValue: Int = 1  // 清晰度档位标识 (0=BASIC, 1=STANDARD, 2=SMOOTH, 3=HIGH_FPS, 4=ULTRA)
     val status: AtomicReference<Int> = AtomicReference(RecordingStatus.IDLE)
     var currentConfig: RecordingConfig? = null
     var mediaProjection: android.media.projection.MediaProjection? = null

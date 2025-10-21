@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import android.widget.TextView
-import com.funny.replaysdk.DevicePerformanceTier
+import com.funny.replaysdk.VideoQualityPreset
 import com.funny.replaysdk.PermissionManager
 import com.funny.replaysdk.SausageReplayAndroidSDK
 import com.funny.replaysdk.RecordingConfig
@@ -38,9 +38,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStop: Button
     private lateinit var btnPause: Button
     private lateinit var btnResume: Button
-    private lateinit var btnQualityHigh: Button
-    private lateinit var btnQualityMedium: Button
-    private lateinit var btnQualityLow: Button
+    private lateinit var btnPresetBasic: Button
+    private lateinit var btnPresetStandard: Button
+    private lateinit var btnPresetSmooth: Button
+    private lateinit var btnPresetHighFps: Button
+    private lateinit var btnPresetUltra: Button
     
     // Toast管理
     private var progressToast: Toast? = null
@@ -76,14 +78,16 @@ class MainActivity : AppCompatActivity() {
         btnStop = findViewById(R.id.btn_stop)
         btnPause = findViewById(R.id.btn_pause)
         btnResume = findViewById(R.id.btn_resume)
-        btnQualityHigh = findViewById(R.id.btn_quality_high)
-        btnQualityMedium = findViewById(R.id.btn_quality_medium)
-        btnQualityLow = findViewById(R.id.btn_quality_low)
+        btnPresetBasic = findViewById(R.id.btn_preset_basic)
+        btnPresetStandard = findViewById(R.id.btn_preset_standard)
+        btnPresetSmooth = findViewById(R.id.btn_preset_smooth)
+        btnPresetHighFps = findViewById(R.id.btn_preset_high_fps)
+        btnPresetUltra = findViewById(R.id.btn_preset_ultra)
         
         // 初始化按钮状态
         updateButtonStates(com.funny.replaysdk.RecordingStatus.IDLE)
         
-        SausageReplayAndroidSDK.initialize(this, DevicePerformanceTier.MID_RANGE)
+        SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.HIGH_FPS)
         
         // 启动性能监控
         startPerformanceMonitoring()
@@ -145,9 +149,15 @@ class MainActivity : AppCompatActivity() {
                         updateButtonStates(com.funny.replaysdk.RecordingStatus.RECORDING)
                     }
                 }
-                override fun onRecordingQualityAdjusted(quality: com.funny.replaysdk.VideoQuality) {
+                override fun onRecordingQualityAdjusted(quality: Int) {
                     runOnUiThread {
-                        Toast.makeText(this@MainActivity, "录制质量已调整为: $quality", Toast.LENGTH_SHORT).show()
+                        val qualityName = when (quality) {
+                            com.funny.replaysdk.VideoQuality.HIGH -> "高质量"
+                            com.funny.replaysdk.VideoQuality.MEDIUM -> "中质量"
+                            com.funny.replaysdk.VideoQuality.LOW -> "低质量"
+                            else -> "未知质量"
+                        }
+                        Toast.makeText(this@MainActivity, "录制质量已调整为: $qualityName", Toast.LENGTH_SHORT).show()
                     }
                 }
                 override fun onRecordingStopped(result: com.funny.replaysdk.RecordingResult) {
@@ -244,19 +254,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        btnQualityHigh.setOnClickListener {
-            val success = RecordingManager.adjustRecordingQuality(com.funny.replaysdk.VideoQuality.HIGH)
-            Toast.makeText(this, "调整高质量: $success", Toast.LENGTH_SHORT).show()
+        btnPresetBasic.setOnClickListener {
+            val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.BASIC)
+            Toast.makeText(this, "切换到基础(720p30): $ok", Toast.LENGTH_SHORT).show()
         }
-        
-        btnQualityMedium.setOnClickListener {
-            val success = RecordingManager.adjustRecordingQuality(com.funny.replaysdk.VideoQuality.MEDIUM)
-            Toast.makeText(this, "调整中质量: $success", Toast.LENGTH_SHORT).show()
+        btnPresetStandard.setOnClickListener {
+            val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.STANDARD)
+            Toast.makeText(this, "切换到标准(1080p30): $ok", Toast.LENGTH_SHORT).show()
         }
-        
-        btnQualityLow.setOnClickListener {
-            val success = RecordingManager.adjustRecordingQuality(com.funny.replaysdk.VideoQuality.LOW)
-            Toast.makeText(this, "调整低质量: $success", Toast.LENGTH_SHORT).show()
+        btnPresetSmooth.setOnClickListener {
+            val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.SMOOTH)
+            Toast.makeText(this, "切换到流畅(720p60): $ok", Toast.LENGTH_SHORT).show()
+        }
+        btnPresetHighFps.setOnClickListener {
+            val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.HIGH_FPS)
+            Toast.makeText(this, "切换到高帧(1080p60): $ok", Toast.LENGTH_SHORT).show()
+        }
+        btnPresetUltra.setOnClickListener {
+            val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.ULTRA)
+            Toast.makeText(this, "切换到超清(1440p): $ok", Toast.LENGTH_SHORT).show()
         }
         
         findViewById<Button>(R.id.btn_reset).setOnClickListener {
@@ -434,17 +450,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun updateRecordingStatus(status: com.funny.replaysdk.RecordingStatus) {
+    private fun updateRecordingStatus(status: Int) {
         val statusText = when (status) {
             com.funny.replaysdk.RecordingStatus.IDLE -> "状态: 空闲"
             com.funny.replaysdk.RecordingStatus.RECORDING -> "状态: 录制中"
             com.funny.replaysdk.RecordingStatus.PAUSED -> "状态: 暂停"
             com.funny.replaysdk.RecordingStatus.STOPPING -> "状态: 停止中"
+            else -> "状态: 未知"
         }
         tvStatus.text = statusText
     }
     
-    private fun updateButtonStates(status: com.funny.replaysdk.RecordingStatus) {
+    private fun updateButtonStates(status: Int) {
         when (status) {
             com.funny.replaysdk.RecordingStatus.IDLE -> {
                 // 空闲状态：只能开始录制
@@ -452,18 +469,22 @@ class MainActivity : AppCompatActivity() {
                 btnStop.isEnabled = false
                 btnPause.isEnabled = false
                 btnResume.isEnabled = false
-                btnQualityHigh.isEnabled = false
-                btnQualityMedium.isEnabled = false
-                btnQualityLow.isEnabled = false
+                btnPresetBasic.isEnabled = false
+                btnPresetStandard.isEnabled = false
+                btnPresetSmooth.isEnabled = false
+                btnPresetHighFps.isEnabled = false
+                btnPresetUltra.isEnabled = false
                 
                 // 设置按钮样式
                 setButtonStyle(btnStart, true)
                 setButtonStyle(btnStop, false)
                 setButtonStyle(btnPause, false)
                 setButtonStyle(btnResume, false)
-                setButtonStyle(btnQualityHigh, false)
-                setButtonStyle(btnQualityMedium, false)
-                setButtonStyle(btnQualityLow, false)
+                setButtonStyle(btnPresetBasic, false)
+                setButtonStyle(btnPresetStandard, false)
+                setButtonStyle(btnPresetSmooth, false)
+                setButtonStyle(btnPresetHighFps, false)
+                setButtonStyle(btnPresetUltra, false)
             }
             com.funny.replaysdk.RecordingStatus.RECORDING -> {
                 // 录制中：可以停止、暂停、调整质量
@@ -471,18 +492,22 @@ class MainActivity : AppCompatActivity() {
                 btnStop.isEnabled = true
                 btnPause.isEnabled = true
                 btnResume.isEnabled = false
-                btnQualityHigh.isEnabled = true
-                btnQualityMedium.isEnabled = true
-                btnQualityLow.isEnabled = true
+                btnPresetBasic.isEnabled = true
+                btnPresetStandard.isEnabled = true
+                btnPresetSmooth.isEnabled = true
+                btnPresetHighFps.isEnabled = true
+                btnPresetUltra.isEnabled = true
                 
                 // 设置按钮样式
                 setButtonStyle(btnStart, false)
                 setButtonStyle(btnStop, true)
                 setButtonStyle(btnPause, true)
                 setButtonStyle(btnResume, false)
-                setButtonStyle(btnQualityHigh, true)
-                setButtonStyle(btnQualityMedium, true)
-                setButtonStyle(btnQualityLow, true)
+                setButtonStyle(btnPresetBasic, true)
+                setButtonStyle(btnPresetStandard, true)
+                setButtonStyle(btnPresetSmooth, true)
+                setButtonStyle(btnPresetHighFps, true)
+                setButtonStyle(btnPresetUltra, true)
             }
             com.funny.replaysdk.RecordingStatus.PAUSED -> {
                 // 暂停状态：可以停止、恢复
@@ -490,18 +515,22 @@ class MainActivity : AppCompatActivity() {
                 btnStop.isEnabled = true
                 btnPause.isEnabled = false
                 btnResume.isEnabled = true
-                btnQualityHigh.isEnabled = false
-                btnQualityMedium.isEnabled = false
-                btnQualityLow.isEnabled = false
+                btnPresetBasic.isEnabled = false
+                btnPresetStandard.isEnabled = false
+                btnPresetSmooth.isEnabled = false
+                btnPresetHighFps.isEnabled = false
+                btnPresetUltra.isEnabled = false
                 
                 // 设置按钮样式
                 setButtonStyle(btnStart, false)
                 setButtonStyle(btnStop, true)
                 setButtonStyle(btnPause, false)
                 setButtonStyle(btnResume, true)
-                setButtonStyle(btnQualityHigh, false)
-                setButtonStyle(btnQualityMedium, false)
-                setButtonStyle(btnQualityLow, false)
+                setButtonStyle(btnPresetBasic, false)
+                setButtonStyle(btnPresetStandard, false)
+                setButtonStyle(btnPresetSmooth, false)
+                setButtonStyle(btnPresetHighFps, false)
+                setButtonStyle(btnPresetUltra, false)
             }
             com.funny.replaysdk.RecordingStatus.STOPPING -> {
                 // 停止中：所有按钮都禁用
@@ -509,18 +538,44 @@ class MainActivity : AppCompatActivity() {
                 btnStop.isEnabled = false
                 btnPause.isEnabled = false
                 btnResume.isEnabled = false
-                btnQualityHigh.isEnabled = false
-                btnQualityMedium.isEnabled = false
-                btnQualityLow.isEnabled = false
+                btnPresetBasic.isEnabled = false
+                btnPresetStandard.isEnabled = false
+                btnPresetSmooth.isEnabled = false
+                btnPresetHighFps.isEnabled = false
+                btnPresetUltra.isEnabled = false
                 
                 // 设置按钮样式
                 setButtonStyle(btnStart, false)
                 setButtonStoppingStyle(btnStop) // 停止按钮特殊样式
                 setButtonStyle(btnPause, false)
                 setButtonStyle(btnResume, false)
-                setButtonStyle(btnQualityHigh, false)
-                setButtonStyle(btnQualityMedium, false)
-                setButtonStyle(btnQualityLow, false)
+                setButtonStyle(btnPresetBasic, false)
+                setButtonStyle(btnPresetStandard, false)
+                setButtonStyle(btnPresetSmooth, false)
+                setButtonStyle(btnPresetHighFps, false)
+                setButtonStyle(btnPresetUltra, false)
+            }
+            else -> {
+                // 未知状态，禁用所有按钮
+                btnStart.isEnabled = false
+                btnStop.isEnabled = false
+                btnPause.isEnabled = false
+                btnResume.isEnabled = false
+                btnPresetBasic.isEnabled = false
+                btnPresetStandard.isEnabled = false
+                btnPresetSmooth.isEnabled = false
+                btnPresetHighFps.isEnabled = false
+                btnPresetUltra.isEnabled = false
+                
+                setButtonStyle(btnStart, false)
+                setButtonStyle(btnStop, false)
+                setButtonStyle(btnPause, false)
+                setButtonStyle(btnResume, false)
+                setButtonStyle(btnPresetBasic, false)
+                setButtonStyle(btnPresetStandard, false)
+                setButtonStyle(btnPresetSmooth, false)
+                setButtonStyle(btnPresetHighFps, false)
+                setButtonStyle(btnPresetUltra, false)
             }
         }
     }
@@ -548,13 +603,19 @@ class MainActivity : AppCompatActivity() {
     
     private var lastVideoPath: String? = null
     
-    private fun convertLastVideo(format: com.funny.replaysdk.OutputFormat) {
+    private fun convertLastVideo(format: Int) {
         if (lastVideoPath == null) {
             Toast.makeText(this, "请先录制一个视频", Toast.LENGTH_SHORT).show()
             return
         }
         
-        Toast.makeText(this, "开始转换格式: $format", Toast.LENGTH_SHORT).show()
+        val formatName = when (format) {
+            com.funny.replaysdk.OutputFormat.WEBM -> "WEBM"
+            com.funny.replaysdk.OutputFormat.AVI -> "AVI"
+            com.funny.replaysdk.OutputFormat.MP4 -> "MP4"
+            else -> "未知格式"
+        }
+        Toast.makeText(this, "开始转换格式: $formatName", Toast.LENGTH_SHORT).show()
         
         RecordingManager.convertVideoFormat(lastVideoPath!!, format) { success, outputPath ->
             runOnUiThread {
@@ -640,14 +701,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        // 使用 SDK 的代理授权 Activity（ScreenCapturePermissionActivity）与内部前台服务流程
+        // 这里不再拦截或转发，避免重复处理导致崩溃
         super.onActivityResult(requestCode, resultCode, data)
-        // Android 14+ 需要在前台服务中启动录屏
-        if (requestCode == 10002 && resultCode == RESULT_OK && data != null) {
-            RecordingFgService.start(this, resultCode, data)
-        } else {
-            // 兼容逻辑（低版本可以直接走库）
-            com.funny.replaysdk.RecordingManager.onActivityResult(requestCode, resultCode, data)
-        }
     }
 }
 

@@ -1,5 +1,9 @@
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.net.URL
+import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 plugins {
     alias(libs.plugins.android.library)
@@ -48,11 +52,27 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    // 处理可能的 META-INF 冲突，保持包体精简（新写法 packaging）
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/LICENSE*",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1",
+                "META-INF/DEPENDENCIES",
+                "META-INF/*.version"
+            )
+        }
+    }
 }
 
 dependencies {
+    // Kotlin 标准库：编译期依赖
     implementation(kotlin("stdlib"))
-    implementation(libs.androidx.core.ktx)
+
+    // AndroidX 仅用于编译，默认不内联以减小 AAR 体积；若运行时缺失再考虑放到 Unity 侧或本地 libs
+    implementation("androidx.core:core:1.13.1")
 }
 
 // 自定义Task：一键导出AAR包

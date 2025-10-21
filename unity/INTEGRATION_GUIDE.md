@@ -84,7 +84,7 @@ public class RecordingManager : MonoBehaviour, IRecordingCallback
         {
             if (granted)
             {
-                bool success = SausageReplaySDK.Initialize(DevicePerformanceTier.MID_RANGE);
+                bool success = SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
                 if (success)
                 {
                     Debug.Log("SDK初始化成功");
@@ -107,7 +107,36 @@ public class RecordingManager : MonoBehaviour, IRecordingCallback
 }
 ```
 
-#### 4.2 高级功能集成
+#### 4.2 清晰度档位选择
+
+SDK 提供5个清晰度档位供选择：
+
+```csharp
+// 普通录屏
+SausageReplaySDK.Initialize(VideoQualityPreset.Basic);
+
+// 游戏回放
+SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
+
+// 动作游戏
+SausageReplaySDK.Initialize(VideoQualityPreset.Smooth);
+
+// 竞技游戏
+SausageReplaySDK.Initialize(VideoQualityPreset.HighFPS);
+
+// 高端内容制作
+SausageReplaySDK.Initialize(VideoQualityPreset.Ultra);
+```
+
+| 清晰度档位 | 分辨率 | 帧率 | 比特率 | 适用场景 |
+|------------|--------|------|--------|----------|
+| Basic | 720p | 30fps | 4.5 Mbps | 普通录屏、教程 |
+| Standard | 1080p | 30fps | 8 Mbps | 主流游戏、应用 |
+| Smooth | 720p | 60fps | 7 Mbps | 动作游戏、流畅度优先 |
+| HighFPS | 1080p | 60fps | 14 Mbps | 竞技游戏、高动态 |
+| Ultra | 1440p | 30fps | 20 Mbps | 高端内容、素材采集 |
+
+#### 4.3 高级功能集成
 
 ```csharp
 // 设备档位检测
@@ -132,30 +161,33 @@ Debug.Log($"内存使用: {memoryUsage.usagePercentage}%");
 
 ### 自动配置机制
 
-**重要更新**：从 v2.0 开始，SDK 采用自动配置机制，无需手动设置录制参数。
+**重要更新**：从 v2.0 开始，SDK 采用清晰度档位配置机制，所有参数从配置文件自动读取。
 
 ```csharp
-// 旧版本（已废弃）
-// var config = new RecordingConfig { quality = VideoQuality.HIGH };
-// SausageReplaySDK.StartRecording(config, callback);
-
-// 新版本（推荐）
-SausageReplaySDK.StartRecording(); // 自动根据设备档位选择最优参数
+// 初始化时选择视频清晰度档位
+SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
+SausageReplaySDK.StartRecording(); // 自动根据选择的档位读取配置参数
 ```
 
-### 设备档位自动检测
+**配置说明**：
+- 所有录制参数都存储在 `device_tier_config.json` 配置文件中
+- 每个清晰度档位都有对应的分辨率、帧率、比特率等参数
+- 无需手动配置，SDK 自动根据选择的档位读取对应参数
 
-SDK 会自动检测设备性能并选择对应的录制参数：
+### 清晰度档位配置
 
-| 设备档位 | 分辨率 | 帧率 | 比特率 | 适用设备 |
-|---------|--------|------|--------|----------|
-| LowEnd | 720p | 25-30fps | 4-6Mbps | 低端设备 |
-| MidRange | 1080p | 30fps | 8-12Mbps | 中端设备 |
-| HighEnd | 1080p | 30-60fps | 12-18Mbps | 高端设备 |
-| Flagship | 1080p | 30-60fps | 15-25Mbps | 旗舰设备 |
+SDK 根据选择的清晰度档位从配置文件读取对应的录制参数：
 
+| 清晰度档位 | 分辨率 | 帧率 | 比特率 | 适用场景 |
+|------------|--------|------|--------|----------|
+| Basic | 720p | 30fps | 4.5Mbps | 普通录屏、教程 |
+| Standard | 1080p | 30fps | 8Mbps | 主流游戏、应用 |
+| Smooth | 720p | 60fps | 7Mbps | 动作游戏、流畅度优先 |
+| HighFPS | 1080p | 60fps | 14Mbps | 竞技游戏、高动态 |
+| Ultra | 1440p | 30fps | 20Mbps | 高端内容、素材采集 |
 **优势**：
 - 无需手动配置参数
+- 参数可配置，支持热更新
 - 自动适配不同设备性能
 - 动态调整录制质量
 - 减少集成复杂度
@@ -256,7 +288,7 @@ A: 确保AAR文件位于正确的路径：`Assets/Plugins/Android/SausageReplayS
 
 ### Q: 运行时出现"SDK未初始化"错误
 
-A: 确保在调用录制功能前先调用 `SausageReplaySDK.Initialize()`
+A: 确保在调用录制功能前先调用 `SausageReplaySDK.Initialize(VideoQualityPreset.Standard)`
 
 ### Q: 权限请求失败
 
