@@ -333,9 +333,9 @@ namespace SausageReplay
                 return true;
             }
 
-            if (Application.platform != RuntimePlatform.Android)
+            if (Application.platform != RuntimePlatform.Android && Application.platform != RuntimePlatform.IPhonePlayer)
             {
-                Debug.LogError("SausageReplaySDK only supports Android platform");
+                Debug.LogError("SausageReplaySDK only supports Android and iOS platforms");
                 return false;
             }
 
@@ -814,9 +814,79 @@ namespace SausageReplay
 
         #endregion
 
-        #region Android JNI 调用
+        #region iOS Native 调用
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_Initialize(int preset);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_InitializeWithTier(int tier);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_IsPlatformSupported();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetVersion();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_Release();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_StartRecording(string configJson);
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_StopRecording();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_PauseRecording();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_ResumeRecording();
+        
+        [DllImport("__Internal")]
+        private static extern int SausageReplaySDK_GetRecordingStatus();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_AdjustRecordingQuality(int quality);
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetDetailedStatus();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetMemoryUsage();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_RecoverFromError();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_ResetStatus();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetDeviceTierInfo();
+        
+        [DllImport("__Internal")]
+        private static extern int SausageReplaySDK_GetCurrentPreset();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_IsGifConversionSupported();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetGifConversionParams();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_ReloadDeviceTierConfig();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_HasMicrophonePermission();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_RequestMicrophonePermission(System.IntPtr callback);
+
+#elif UNITY_ANDROID && !UNITY_EDITOR
         private const string SDK_CLASS_NAME = "com.funny.replaysdk.SausageReplayAndroidSDK";
         private const string RECORDING_MANAGER_CLASS_NAME = "com.funny.replaysdk.RecordingManager";
         private const string PERMISSION_MANAGER_CLASS_NAME = "com.funny.replaysdk.PermissionManager";
@@ -1035,7 +1105,7 @@ namespace SausageReplay
             }
         }
 
-        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, Action<bool, string> callback)
+        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback)
         {
             try
             {
@@ -1202,7 +1272,7 @@ namespace SausageReplay
             }
         }
 
-        private static void SausageReplaySDK_RequestMicrophonePermission()
+        private static void SausageReplaySDK_RequestMicrophonePermission(System.IntPtr callback)
         {
             try
             {
@@ -1249,7 +1319,8 @@ namespace SausageReplay
 
 #else
         // Editor 模式下的模拟实现
-        private static bool SausageReplaySDK_Initialize(int tier) => false;
+        private static bool SausageReplaySDK_Initialize(int preset) => false;
+        private static bool SausageReplaySDK_InitializeWithTier(int tier) => false;
         private static bool SausageReplaySDK_IsPlatformSupported() => false;
         private static string SausageReplaySDK_GetVersion() => "1.0.0";
         private static bool SausageReplaySDK_StartRecording() => false;
@@ -1257,9 +1328,9 @@ namespace SausageReplay
         private static bool SausageReplaySDK_PauseRecording() => false;
         private static bool SausageReplaySDK_ResumeRecording() => false;
         private static bool SausageReplaySDK_AdjustRecordingQuality(int quality) => false;
-        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, Action<bool, string> callback) 
+        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback) 
         {
-            callback?.Invoke(false, "Not supported in editor");
+            // iOS callback handling would go here
         }
         private static int SausageReplaySDK_GetRecordingStatus() => 0;
         private static string SausageReplaySDK_GetDetailedStatus() => "{}";
@@ -1268,11 +1339,12 @@ namespace SausageReplay
         private static void SausageReplaySDK_ResetStatus() { }
         private static void SausageReplaySDK_Release() { }
         private static string SausageReplaySDK_GetDeviceTierInfo() => "{}";
+        private static int SausageReplaySDK_GetCurrentPreset() => 1; // Standard
         private static bool SausageReplaySDK_IsGifConversionSupported() => false;
         private static string SausageReplaySDK_GetGifConversionParams() => "{}";
         private static bool SausageReplaySDK_ReloadDeviceTierConfig() => false;
         private static bool SausageReplaySDK_HasMicrophonePermission() => false;
-        private static void SausageReplaySDK_RequestMicrophonePermission() { }
+        private static void SausageReplaySDK_RequestMicrophonePermission(System.IntPtr callback) { }
         private static bool SausageReplaySDK_StartProgressMonitoring() => false;
         private static void SausageReplaySDK_StopProgressMonitoring() { }
 #endif

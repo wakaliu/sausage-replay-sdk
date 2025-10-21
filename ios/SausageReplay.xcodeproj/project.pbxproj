@@ -1,0 +1,411 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1000001 /* SausageReplayIOSSDK.m in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* SausageReplayIOSSDK.m */; };
+		A1000003 /* SRPermissionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A1000002 /* SRPermissionManager.m */; };
+		A1000005 /* SRRecordingManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A1000004 /* SRRecordingManager.m */; };
+		A1000007 /* SRFileManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A1000006 /* SRFileManager.m */; };
+		A1000009 /* SRModels.m in Sources */ = {isa = PBXBuildFile; fileRef = A1000008 /* SRModels.m */; };
+		A100000B /* SRUnityBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A100000A /* SRUnityBridge.m */; };
+		A100000D /* SausageReplayIOSSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = A100000C /* SausageReplayIOSSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A100000F /* SRPermissionManager.h in Headers */ = {isa = PBXBuildFile; fileRef = A100000E /* SRPermissionManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A1000011 /* SRRecordingManager.h in Headers */ = {isa = PBXBuildFile; fileRef = A1000010 /* SRRecordingManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A1000013 /* SRFileManager.h in Headers */ = {isa = PBXBuildFile; fileRef = A1000012 /* SRFileManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A1000015 /* SRModels.h in Headers */ = {isa = PBXBuildFile; fileRef = A1000014 /* SRModels.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A1000017 /* SRUnityBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = A1000016 /* SRUnityBridge.h */; settings = {ATTRIBUTES = (Public, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1000000 /* SausageReplayIOSSDK.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SausageReplayIOSSDK.m; sourceTree = "<group>"; };
+		A1000002 /* SRPermissionManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRPermissionManager.m; sourceTree = "<group>"; };
+		A1000004 /* SRRecordingManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRRecordingManager.m; sourceTree = "<group>"; };
+		A1000006 /* SRFileManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRFileManager.m; sourceTree = "<group>"; };
+		A1000008 /* SRModels.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRModels.m; sourceTree = "<group>"; };
+		A100000A /* SRUnityBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRUnityBridge.m; sourceTree = "<group>"; };
+		A100000C /* SausageReplayIOSSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SausageReplayIOSSDK.h; sourceTree = "<group>"; };
+		A100000E /* SRPermissionManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRPermissionManager.h; sourceTree = "<group>"; };
+		A1000010 /* SRRecordingManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRRecordingManager.h; sourceTree = "<group>"; };
+		A1000012 /* SRFileManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRFileManager.h; sourceTree = "<group>"; };
+		A1000014 /* SRModels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRModels.h; sourceTree = "<group>"; };
+		A1000016 /* SRUnityBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRUnityBridge.h; sourceTree = "<group>"; };
+		A1000018 /* SausageReplay.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SausageReplay.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000019 /* SausageReplay.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = SausageReplay.xcframework; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A100001A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A100001B = {
+			isa = PBXGroup;
+			children = (
+				A100001C /* SausageReplay */,
+				A100001D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A100001C /* SausageReplay */ = {
+			isa = PBXGroup;
+			children = (
+				A100001E /* Core */,
+				A100001F /* Recording */,
+				A1000020 /* File */,
+				A1000021 /* Bridge */,
+				A1000022 /* Public */,
+			);
+			path = SausageReplay;
+			sourceTree = "<group>";
+		};
+		A100001D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1000018 /* SausageReplay.framework */,
+				A1000019 /* SausageReplay.xcframework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A100001E /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A100000C /* SausageReplayIOSSDK.h */,
+				A1000000 /* SausageReplayIOSSDK.m */,
+				A1000014 /* SRModels.h */,
+				A1000008 /* SRModels.m */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A100001F /* Recording */ = {
+			isa = PBXGroup;
+			children = (
+				A100000E /* SRPermissionManager.h */,
+				A1000002 /* SRPermissionManager.m */,
+				A1000010 /* SRRecordingManager.h */,
+				A1000004 /* SRRecordingManager.m */,
+			);
+			path = Recording;
+			sourceTree = "<group>";
+		};
+		A1000020 /* File */ = {
+			isa = PBXGroup;
+			children = (
+				A1000012 /* SRFileManager.h */,
+				A1000006 /* SRFileManager.m */,
+			);
+			path = File;
+			sourceTree = "<group>";
+		};
+		A1000021 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				A1000016 /* SRUnityBridge.h */,
+				A100000A /* SRUnityBridge.m */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
+		A1000022 /* Public */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Public;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		A1000023 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A100000D /* SausageReplayIOSSDK.h in Headers */,
+				A100000F /* SRPermissionManager.h in Headers */,
+				A1000011 /* SRRecordingManager.h in Headers */,
+				A1000013 /* SRFileManager.h in Headers */,
+				A1000015 /* SRModels.h in Headers */,
+				A1000017 /* SRUnityBridge.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		A1000024 /* SausageReplay */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000025 /* Build configuration list for PBXNativeTarget "SausageReplay" */;
+			buildPhases = (
+				A1000023 /* Headers */,
+				A100001A /* Frameworks */,
+				A1000026 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SausageReplay;
+			productName = SausageReplay;
+			productReference = A1000018 /* SausageReplay.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1000027 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					A1000024 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A1000028 /* Build configuration list for PBXProject "SausageReplay" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A100001B;
+			productRefGroup = A100001D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1000024 /* SausageReplay */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1000026 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000001 /* SausageReplayIOSSDK.m in Sources */,
+				A1000003 /* SRPermissionManager.m in Sources */,
+				A1000005 /* SRRecordingManager.m in Sources */,
+				A1000007 /* SRFileManager.m in Sources */,
+				A1000009 /* SRModels.m in Sources */,
+				A100000B /* SRUnityBridge.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		A100002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A100002B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record audio during screen recording.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.funny.replaysdk.SausageReplay;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A100002C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record audio during screen recording.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.funny.replaysdk.SausageReplay;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1000025 /* Build configuration list for PBXNativeTarget "SausageReplay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100002B /* Debug */,
+				A100002C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000028 /* Build configuration list for PBXProject "SausageReplay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000029 /* Debug */,
+				A100002A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1000027 /* Project object */;
+}
