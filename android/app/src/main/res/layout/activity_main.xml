@@ -21,19 +21,6 @@
         android:padding="12dp"
         android:layout_marginBottom="12dp">
         
-        <TextView
-            android:id="@+id/tv_memory"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="内存: -- MB"
-            android:textSize="12sp"
-            android:gravity="center" />
-            
-        <View
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:background="#CCCCCC" />
             
         <TextView
             android:id="@+id/tv_fps"
@@ -84,29 +71,6 @@
         android:layout_width="0dp"
         android:layout_height="8dp" />
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
-        
-        <Button
-            android:id="@+id/btn_pause"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="暂停"
-            android:layout_marginEnd="8dp" />
-            
-        <Button
-            android:id="@+id/btn_resume"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="恢复" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="0dp"
-        android:layout_height="8dp" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -174,47 +138,12 @@
             android:text="详细状态"
             android:layout_marginEnd="8dp" />
             
-        <Button
-            android:id="@+id/btn_recover"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="错误恢复" />
     </LinearLayout>
 
     <View
         android:layout_width="0dp"
         android:layout_height="8dp" />
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
-        
-        <Button
-            android:id="@+id/btn_convert_gif"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="转GIF"
-            android:layout_marginEnd="8dp" />
-            
-        <Button
-            android:id="@+id/btn_convert_webm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="转WEBM"
-            android:layout_marginEnd="8dp" />
-            
-        <Button
-            android:id="@+id/btn_convert_avi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="转AVI" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="0dp"
-        android:layout_height="8dp" />
 
     <!-- 音频测试区域 -->
     <LinearLayout

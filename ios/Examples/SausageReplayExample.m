@@ -21,7 +21,7 @@
     
     // 1. 初始化SDK
     NSLog(@"1. 初始化SDK...");
-    BOOL initialized = [SausageReplayIOSSDK initializeWithTier:SRDevicePerformanceTierMidRange];
+    BOOL initialized = [SausageReplayIOSSDK initializeWithPreset:SRVideoQualityPresetStandard];
     if (!initialized) {
         NSLog(@"❌ SDK初始化失败");
         return;
@@ -49,9 +49,8 @@
             NSLog(@"权限请求结果: %@", result.isGranted ? @"✅ 授权成功" : @"❌ 授权失败");
         }];
     }
-    
-    // 5. 获取设备档位信息
-    NSLog(@"5. 获取设备档位信息...");
+    // 4. 获取设备档位信息
+    NSLog(@"4. 获取设备档位信息...");
     SRDeviceTierInfo *tierInfo = [SausageReplayIOSSDK getDeviceTierInfo];
     NSLog(@"设备档位: %@", tierInfo.tierName);
     NSLog(@"最大分辨率: %ldx%ld", (long)tierInfo.maxWidth, (long)tierInfo.maxHeight);
@@ -67,17 +66,15 @@
           memoryUsage.maxMemory / 1024 / 1024,
           memoryUsage.usagePercentage);
     
-    // 7. 创建录制配置
-    NSLog(@"7. 创建录制配置...");
+    // 5. 创建录制配置
+    NSLog(@"5. 创建录制配置...");
     SRRecordingConfig *config = [SRRecordingConfig defaultConfig];
-    config.quality = SRVideoQualityMedium;
     config.maxDurationSeconds = 30;
     config.includeAudio = YES;
-    config.outputFormat = SROutputFormatMP4;
     NSLog(@"录制配置创建完成");
     
-    // 8. 开始录制（模拟）
-    NSLog(@"8. 开始录制...");
+    // 6. 开始录制（模拟）
+    NSLog(@"6. 开始录制...");
     BOOL started = [SRRecordingManager startRecordingWithConfig:config callback:self];
     NSLog(@"录制开始: %@", started ? @"✅ 成功" : @"❌ 失败");
     
@@ -99,9 +96,9 @@
         });
     }
     
-    // 9. 清理资源
+    // 7. 清理资源
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        NSLog(@"9. 清理资源...");
+        NSLog(@"7. 清理资源...");
         [SausageReplayIOSSDK releaseResources];
         NSLog(@"✅ 资源清理完成");
     });

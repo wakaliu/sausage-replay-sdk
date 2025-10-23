@@ -2,7 +2,7 @@
 
 ## 概述
 
-Sausage Replay Android SDK 是一个用于Android平台的屏幕录制SDK，支持高质量视频录制、暂停/恢复、格式转换等功能。
+Sausage Replay Android SDK 是一个用于Android平台的屏幕录制SDK，支持高质量视频录制功能。
 
 ## 快速开始
 
@@ -10,7 +10,7 @@ Sausage Replay Android SDK 是一个用于Android平台的屏幕录制SDK，支�
 
 ```kotlin
 // 初始化SDK
-val success = SausageReplayAndroidSDK.initialize(context, DevicePerformanceTier.MID_RANGE)
+val success = SausageReplayAndroidSDK.initialize(context, VideoQualityPreset.STANDARD)
 if (success) {
     // SDK初始化成功
 }
@@ -53,11 +53,11 @@ val success = RecordingManager.startRecording(activity, config) { result ->
 #### 初始化方法
 
 ```kotlin
-fun initialize(context: Context, tier: DevicePerformanceTier = DevicePerformanceTier.MID_RANGE): Boolean
+fun initialize(context: Context, preset: Int = VideoQualityPreset.STANDARD): Boolean
 ```
 - **参数**：
   - `context`: Android应用上下文
-  - `tier`: 设备性能等级（LOW_END, MID_RANGE, HIGH_END, FLAGSHIP）
+  - `preset`: 视频清晰度档位（0=BASIC, 1=STANDARD, 2=SMOOTH, 3=HIGH_FPS, 4=ULTRA）
 - **返回**：初始化是否成功
 
 #### 平台支持检查
@@ -74,12 +74,6 @@ fun getVersion(): String
 ```
 - **返回**：SDK版本号
 
-#### 内存监控
-
-```kotlin
-fun getMemoryUsage(): MemoryUsage
-```
-- **返回**：当前内存使用情况
 
 #### 资源释放
 
@@ -109,19 +103,6 @@ fun stopRecording(callback: (RecordingResult) -> Unit)
 - **参数**：
   - `callback`: 停止录制回调
 
-#### 暂停录制
-
-```kotlin
-fun pauseRecording(): Boolean
-```
-- **返回**：是否成功暂停
-
-#### 恢复录制
-
-```kotlin
-fun resumeRecording(): Boolean
-```
-- **返回**：是否成功恢复
 
 #### 调整录制质量
 
@@ -132,15 +113,6 @@ fun adjustRecordingQuality(quality: VideoQuality): Boolean
   - `quality`: 目标质量等级
 - **返回**：是否成功调整
 
-#### 格式转换
-
-```kotlin
-fun convertVideoFormat(inputPath: String, outputFormat: OutputFormat, callback: (Boolean, String?) -> Unit)
-```
-- **参数**：
-  - `inputPath`: 输入文件路径
-  - `outputFormat`: 目标格式
-  - `callback`: 转换结果回调
 
 #### 状态查询
 
@@ -149,11 +121,6 @@ fun getRecordingStatus(): RecordingStatus
 fun getDetailedStatus(): DetailedStatus
 ```
 
-#### 错误恢复
-
-```kotlin
-fun recoverFromError(): Boolean
-```
 
 #### 状态重置
 
@@ -161,19 +128,6 @@ fun recoverFromError(): Boolean
 fun resetStatus()
 ```
 
-### PermissionManager
-
-#### 检查麦克风权限
-
-```kotlin
-fun hasMicrophonePermission(context: Context): Boolean
-```
-
-#### 请求麦克风权限
-
-```kotlin
-fun requestMicrophonePermission(activity: Activity, callback: (granted: Boolean, errorCode: Int, message: String?) -> Unit)
-```
 
 #### 请求屏幕录制权限
 
@@ -193,11 +147,10 @@ data class RecordingConfig(
     val maxDurationSeconds: Int = 60,
     val maxFileSizeBytes: Long = 50L * 1024 * 1024,
     val includeAudio: Boolean = true,
-    val outputFormat: OutputFormat = OutputFormat.MP4,
     val outputPath: String? = null,
     val targetBitrate: Int? = null,
     val targetFps: Int = 30,
-    val performanceTier: DevicePerformanceTier = DevicePerformanceTier.MID_RANGE
+    val performanceTier: Int = VideoQualityPreset.STANDARD
 )
 ```
 
@@ -216,19 +169,6 @@ data class RecordingResult(
 )
 ```
 
-### MemoryUsage
-
-内存使用情况：
-
-```kotlin
-data class MemoryUsage(
-    val totalMemory: Long,
-    val usedMemory: Long,
-    val freeMemory: Long,
-    val maxMemory: Long,
-    val usagePercentage: Int
-)
-```
 
 ### DetailedStatus
 
@@ -237,7 +177,6 @@ data class MemoryUsage(
 ```kotlin
 data class DetailedStatus(
     val status: RecordingStatus,
-    val memoryUsage: MemoryUsage,
     val config: RecordingConfig?,
     val hasProjection: Boolean,
     val hasRecorder: Boolean,
@@ -261,18 +200,6 @@ enum class VideoQuality {
 }
 ```
 
-### OutputFormat
-
-输出格式：
-
-```kotlin
-enum class OutputFormat { 
-    MP4,   // MP4格式
-    GIF,   // GIF格式
-    WEBM,  // WebM格式
-    AVI    // AVI格式
-}
-```
 
 ### RecordingStatus
 
@@ -282,21 +209,21 @@ enum class OutputFormat {
 enum class RecordingStatus { 
     IDLE,     // 空闲
     RECORDING, // 录制中
-    PAUSED,   // 已暂停
     STOPPING  // 停止中
 }
 ```
 
-### DevicePerformanceTier
+### VideoQualityPreset
 
-设备性能等级：
+视频清晰度档位：
 
 ```kotlin
-enum class DevicePerformanceTier { 
-    LOW_END,   // 低端设备
-    MID_RANGE, // 中端设备
-    HIGH_END,  // 高端设备
-    FLAGSHIP   // 旗舰设备
+object VideoQualityPreset {
+    const val BASIC = 0      // 720p30
+    const val STANDARD = 1   // 1080p30
+    const val SMOOTH = 2     // 720p60
+    const val HIGH_FPS = 3   // 1080p60
+    const val ULTRA = 4      // 1440p30/60
 }
 ```
 
@@ -394,21 +321,6 @@ class MainActivity : AppCompatActivity() {
 }
 ```
 
-### 格式转换示例
-
-```kotlin
-// 转换MP4为GIF
-RecordingManager.convertVideoFormat(
-    inputPath = "/path/to/video.mp4",
-    outputFormat = OutputFormat.GIF
-) { success, outputPath ->
-    if (success) {
-        println("转换成功: $outputPath")
-    } else {
-        println("转换失败")
-    }
-}
-```
 
 ## 注意事项
 

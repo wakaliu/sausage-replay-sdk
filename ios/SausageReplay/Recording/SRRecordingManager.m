@@ -551,30 +551,21 @@ static SRRecordingManager *_sharedInstance = nil;
     return CGSizeMake(1920, 1080); // 默认1080p
 }
 
-- (CGSize)calculateVideoSizeForQuality:(SRVideoQuality)quality tier:(SRDevicePerformanceTier)tier {
-    switch (tier) {
-        case SRDevicePerformanceTierMidRange:
-            switch (quality) {
-                case SRVideoQualityHigh:
-                    return CGSizeMake(1280, 720); // 限制为720p
-                case SRVideoQualityMedium:
-                    return CGSizeMake(1280, 720);
-                case SRVideoQualityLow:
-                    return CGSizeMake(854, 480);
-            }
-            break;
-        case SRDevicePerformanceTierHighEnd:
-            switch (quality) {
-                case SRVideoQualityHigh:
-                    return CGSizeMake(1920, 1080);
-                case SRVideoQualityMedium:
-                    return CGSizeMake(1280, 720);
-                case SRVideoQualityLow:
-                    return CGSizeMake(854, 480);
-            }
-            break;
+- (CGSize)calculateVideoSizeForQuality:(SRVideoQuality)quality preset:(SRVideoQualityPreset)preset {
+    switch (preset) {
+        case SRVideoQualityPresetBasic:
+            return CGSizeMake(1280, 720); // 720p
+        case SRVideoQualityPresetStandard:
+            return CGSizeMake(1920, 1080); // 1080p
+        case SRVideoQualityPresetSmooth:
+            return CGSizeMake(1280, 720); // 720p
+        case SRVideoQualityPresetHighFps:
+            return CGSizeMake(1920, 1080); // 1080p
+        case SRVideoQualityPresetUltra:
+            return CGSizeMake(2560, 1440); // 1440p
+        default:
+            return CGSizeMake(1920, 1080); // 默认1080p
     }
-    return CGSizeMake(1280, 720); // 默认
 }
 
 - (NSInteger)calculateBitrateForPreset:(SRVideoQualityPreset)preset {
@@ -593,31 +584,6 @@ static SRRecordingManager *_sharedInstance = nil;
     return 4000000; // 默认4 Mbps
 }
 
-- (NSInteger)calculateBitrateForQuality:(SRVideoQuality)quality tier:(SRDevicePerformanceTier)tier {
-    switch (tier) {
-        case SRDevicePerformanceTierMidRange:
-            switch (quality) {
-                case SRVideoQualityHigh:
-                    return 6000000; // 6 Mbps
-                case SRVideoQualityMedium:
-                    return 3000000; // 3 Mbps
-                case SRVideoQualityLow:
-                    return 1500000; // 1.5 Mbps
-            }
-            break;
-        case SRDevicePerformanceTierHighEnd:
-            switch (quality) {
-                case SRVideoQualityHigh:
-                    return 10000000; // 10 Mbps
-                case SRVideoQualityMedium:
-                    return 6000000; // 6 Mbps
-                case SRVideoQualityLow:
-                    return 3000000; // 3 Mbps
-            }
-            break;
-    }
-    return 3000000; // 默认3 Mbps
-}
 
 - (void)startTimers {
     // 最大时长定时器

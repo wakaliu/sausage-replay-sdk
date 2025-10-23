@@ -60,45 +60,6 @@ object SausageReplayAndroidSDK {
 
 
     
-    /**
-     * 兼容重载：使用字符串传递视频清晰度档位，内部转换为整型
-     * 可接受的值：BASIC / STANDARD / SMOOTH / HIGH_FPS / ULTRA（大小写不敏感）
-     */
-    @JvmStatic
-    fun initialize(context: Context, presetName: String): Boolean {
-        android.util.Log.d("SausageReplayAndroidSDK", "initialize(Context, String) called with presetName: '$presetName'")
-        
-        // 将字符串转换为整型标识
-        val presetValue = when (presetName.uppercase()) {
-            "BASIC" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 0")
-                0
-            }
-            "STANDARD" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 1")
-                1
-            }
-            "SMOOTH" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 2")
-                2
-            }
-            "HIGH_FPS" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 3")
-                3
-            }
-            "ULTRA" -> {
-                android.util.Log.d("SausageReplayAndroidSDK", "Mapped presetName '$presetName' to presetValue: 4")
-                4
-            }
-            else -> {
-                android.util.Log.w("SausageReplayAndroidSDK", "Invalid presetName: '$presetName', using presetValue: 1 (STANDARD)")
-                1
-            }
-        }
-        
-        android.util.Log.d("SausageReplayAndroidSDK", "Calling initialize(Context, Int) with presetValue: $presetValue")
-        return initialize(context, presetValue)
-    }
 
     @JvmStatic
     fun isPlatformSupported(): Boolean = true
@@ -106,22 +67,6 @@ object SausageReplayAndroidSDK {
     @JvmStatic
     fun getVersion(): String = "1.0.0"
     
-    @JvmStatic
-    fun getMemoryUsage(): MemoryUsage {
-        val runtime = Runtime.getRuntime()
-        val totalMemory = runtime.totalMemory()
-        val freeMemory = runtime.freeMemory()
-        val usedMemory = totalMemory - freeMemory
-        val maxMemory = runtime.maxMemory()
-        
-        return MemoryUsage(
-            totalMemory = totalMemory,
-            usedMemory = usedMemory,
-            freeMemory = freeMemory,
-            maxMemory = maxMemory,
-            usagePercentage = (usedMemory.toFloat() / maxMemory.toFloat() * 100).toInt()
-        )
-    }
     
     // ========== 高级API：性能监控相关 ==========
     
@@ -146,21 +91,6 @@ object SausageReplayAndroidSDK {
         } else null
     }
     
-    /**
-     * 检查GIF转换是否支持（高级API）
-     */
-    @JvmStatic
-    fun isGifConversionSupported(): Boolean {
-        return DeviceTierManager.isGifConversionSupported()
-    }
-    
-    /**
-     * 获取GIF转换参数（高级API）
-     */
-    @JvmStatic
-    fun getGifConversionParams(): GifConversionParams? {
-        return DeviceTierManager.getGifConversionParams()
-    }
     
     /**
      * 重新加载设备档位配置（高级API）
@@ -194,58 +124,17 @@ object SausageReplayAndroidSDK {
     }
 }
 
-object PermissionManager {
-    @JvmStatic
-    fun hasMicrophonePermission(context: Context): Boolean =
-        ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-
-    @JvmStatic
-    fun requestMicrophonePermission(activity: Activity, callback: (granted: Boolean, errorCode: Int, message: String?) -> Unit) {
-        if (hasMicrophonePermission(activity)) {
-            callback(true, 0, null)
-            return
-        }
-        CallbackStore.permissionCallback = callback
-        ActivityCompat.requestPermissions(
-            activity,
-            arrayOf(android.Manifest.permission.RECORD_AUDIO),
-            RequestCodes.RECORD_AUDIO
-        )
-    }
-
-    /** 应由宿主Activity在 onRequestPermissionsResult 中转发 */
-    @JvmStatic
-    fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>?,
-        grantResults: IntArray?
-    ) {
-        if (requestCode != RequestCodes.RECORD_AUDIO) return
-        val granted = grantResults?.isNotEmpty() == true && grantResults[0] == PackageManager.PERMISSION_GRANTED
-        val cb = CallbackStore.permissionCallback
-        CallbackStore.permissionCallback = null
-        if (cb != null) {
-            if (granted) cb(true, 0, null) else cb(false, 1001, "PermissionDenied")
-        }
-    }
-}
 
 object RecordingStatus {
     const val IDLE = 0
     const val RECORDING = 1
-    const val PAUSED = 2
-    const val STOPPING = 3
+    const val STOPPING = 2
 }
 
 // 录制回调接口
 interface RecordingCallback {
     fun onRecordingStarted()
     fun onRecordingProgress(durationMs: Long, fileSizeBytes: Long)
-    fun onRecordingPaused()
-    fun onRecordingResumed()
     fun onRecordingStopped(result: RecordingResult)
     fun onRecordingError(errorCode: Int, errorMessage: String?)
     fun onRecordingQualityAdjusted(quality: Int) {}
@@ -259,7 +148,6 @@ data class RecordingConfig(
     val maxDurationSeconds: Int = 60,
     val maxFileSizeBytes: Long = 50L * 1024 * 1024,
     val includeAudio: Boolean = true,
-    val outputFormat: Int = OutputFormat.MP4,
     val outputPath: String? = null,
     val targetBitrate: Int? = null,
     val targetFps: Int = 30,
@@ -271,12 +159,6 @@ object VideoQuality {
     const val MEDIUM = 1
     const val HIGH = 2
 }
-object OutputFormat {
-    const val MP4 = 0
-    const val GIF = 1
-    const val WEBM = 2
-    const val AVI = 3
-}
 
 data class RecordingResult(
     val isSuccess: Boolean,
@@ -287,17 +169,9 @@ data class RecordingResult(
     val errorMessage: String? = null
 )
 
-data class MemoryUsage(
-    val totalMemory: Long,
-    val usedMemory: Long,
-    val freeMemory: Long,
-    val maxMemory: Long,
-    val usagePercentage: Int
-)
 
 data class DetailedStatus(
     val status: Int,
-    val memoryUsage: MemoryUsage,
     val hasProjection: Boolean,
     val hasRecorder: Boolean,
     val hasDisplay: Boolean,
@@ -321,17 +195,12 @@ data class DeviceTierInfo(
 object RecordingManager {
     // Unity 回调引用
     private var unityRecordingCallback: UnityRecordingCallback? = null
-    private var unityConvertCallback: UnityConvertCallback? = null
     
     @JvmStatic
     fun setUnityRecordingCallback(callback: UnityRecordingCallback) {
         unityRecordingCallback = callback
     }
     
-    @JvmStatic
-    fun setUnityConvertCallback(callback: UnityConvertCallback) {
-        unityConvertCallback = callback
-    }
     
     /**
      * 根据视频清晰度档位自动生成录制配置
@@ -361,7 +230,6 @@ object RecordingManager {
                 maxDurationSeconds = 60,
                 maxFileSizeBytes = 100L * 1024 * 1024, // 默认100MB，可根据需要调整
                 includeAudio = true,
-                outputFormat = OutputFormat.MP4,
                 targetBitrate = tierConfig.videoBitrate.default.toInt(),
                 targetFps = tierConfig.targetFps.default,
                 performanceTier = preset
@@ -375,7 +243,6 @@ object RecordingManager {
                 maxDurationSeconds = 60,
                 maxFileSizeBytes = 100L * 1024 * 1024,
                 includeAudio = true,
-                outputFormat = OutputFormat.MP4,
                 targetBitrate = 8000000,
                 targetFps = 30,
                 performanceTier = VideoQualityPreset.STANDARD
@@ -728,7 +595,7 @@ object RecordingManager {
             // 性能监控由用户手动管理，不自动停止
             
             // 检查状态是否允许停止
-            if (currentStatus != RecordingStatus.RECORDING && currentStatus != RecordingStatus.PAUSED) {
+            if (currentStatus != RecordingStatus.RECORDING) {
                 val result = RecordingResult(false, errorCode = 2001, errorMessage = "RecordingNotStarted - status=$currentStatus")
                 StateHolder.mainHandler.post { callback(result) }
                 return@enqueueTask
@@ -809,95 +676,7 @@ object RecordingManager {
     }
 
 
-    @JvmStatic
-    fun pauseRecording(): Boolean {
-        return StateHolder.recordingWorker.enqueueTaskWithResult {
-            val currentStatus = StateHolder.status.get()
-            val recorder = StateHolder.mediaRecorder
-            
-            android.util.Log.d("RecordingManager", "pauseRecording: status=$currentStatus, recorder=$recorder")
-            
-            if (currentStatus != RecordingStatus.RECORDING || recorder == null) {
-                android.util.Log.w("RecordingManager", "pauseRecording: Invalid state or recorder null")
-                return@enqueueTaskWithResult false
-            }
-            
-            try {
-                // 检查设备是否支持暂停
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                    recorder.pause()
-                    StateHolder.status.set(RecordingStatus.PAUSED)
-                    StateHolder.mainHandler.post {
-                        StateHolder.recordingCallback?.onRecordingPaused()
-                        unityRecordingCallback?.onRecordingPaused()
-                    }
-                    android.util.Log.d("RecordingManager", "pauseRecording: Successfully paused")
-                    true
-                } else {
-                    // Android 7.0以下不支持MediaRecorder.pause()，使用软暂停策略
-                    android.util.Log.w("RecordingManager", "pauseRecording: Device doesn't support pause, using soft pause")
-                    StateHolder.status.set(RecordingStatus.PAUSED)
-                    StateHolder.mainHandler.post {
-                        StateHolder.recordingCallback?.onRecordingPaused()
-                        unityRecordingCallback?.onRecordingPaused()
-                    }
-                    true
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("RecordingManager", "pauseRecording failed", e)
-                StateHolder.mainHandler.post {
-                    try { StateHolder.recordingCallback?.onRecordingError(3001, "Failed to pause recording: ${e.message}") } catch (_: Throwable) {}
-                    try { unityRecordingCallback?.onRecordingError(3001, "Failed to pause recording: ${e.message}") } catch (_: Throwable) {}
-                }
-                false
-            }
-        }
-    }
 
-    @JvmStatic
-    fun resumeRecording(): Boolean {
-        return StateHolder.recordingWorker.enqueueTaskWithResult {
-            val currentStatus = StateHolder.status.get()
-            val recorder = StateHolder.mediaRecorder
-            
-            android.util.Log.d("RecordingManager", "resumeRecording: status=$currentStatus, recorder=$recorder")
-            
-            if (currentStatus != RecordingStatus.PAUSED || recorder == null) {
-                android.util.Log.w("RecordingManager", "resumeRecording: Invalid state or recorder null")
-                return@enqueueTaskWithResult false
-            }
-            
-            try {
-                // 检查设备是否支持恢复
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                    recorder.resume()
-                    StateHolder.status.set(RecordingStatus.RECORDING)
-                    StateHolder.mainHandler.post {
-                        StateHolder.recordingCallback?.onRecordingResumed()
-                        unityRecordingCallback?.onRecordingResumed()
-                    }
-                    android.util.Log.d("RecordingManager", "resumeRecording: Successfully resumed")
-                    true
-                } else {
-                    // Android 7.0以下不支持MediaRecorder.resume()，使用软恢复策略
-                    android.util.Log.w("RecordingManager", "resumeRecording: Device doesn't support resume, using soft resume")
-                    StateHolder.status.set(RecordingStatus.RECORDING)
-                    StateHolder.mainHandler.post {
-                        StateHolder.recordingCallback?.onRecordingResumed()
-                        unityRecordingCallback?.onRecordingResumed()
-                    }
-                    true
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("RecordingManager", "resumeRecording failed", e)
-                StateHolder.mainHandler.post {
-                    try { StateHolder.recordingCallback?.onRecordingError(3002, "Failed to resume recording: ${e.message}") } catch (_: Throwable) {}
-                    try { unityRecordingCallback?.onRecordingError(3002, "Failed to resume recording: ${e.message}") } catch (_: Throwable) {}
-                }
-                false
-            }
-        }
-    }
 
     @JvmStatic
     fun getRecordingStatus(): Int = StateHolder.status.get()
@@ -979,7 +758,6 @@ object RecordingManager {
     @JvmStatic
     fun getDetailedStatus(): DetailedStatus {
         val currentStatus = StateHolder.status.get()
-        val memoryUsage = SausageReplayAndroidSDK.getMemoryUsage()
         val hasProjection = StateHolder.mediaProjection != null
         val hasRecorder = StateHolder.mediaRecorder != null
         val hasDisplay = StateHolder.virtualDisplay != null
@@ -1027,7 +805,6 @@ object RecordingManager {
         
         return DetailedStatus(
             status = currentStatus,
-            memoryUsage = memoryUsage,
             hasProjection = hasProjection,
             hasRecorder = hasRecorder,
             hasDisplay = hasDisplay,
@@ -1048,13 +825,6 @@ object RecordingManager {
         return try {
             org.json.JSONObject().apply {
                 put("status", status.status)
-                put("memoryUsage", org.json.JSONObject().apply {
-                    put("totalMemory", status.memoryUsage.totalMemory)
-                    put("usedMemory", status.memoryUsage.usedMemory)
-                    put("freeMemory", status.memoryUsage.freeMemory)
-                    put("maxMemory", status.memoryUsage.maxMemory)
-                    put("usagePercentage", status.memoryUsage.usagePercentage)
-                })
                 put("hasProjection", status.hasProjection)
                 put("hasRecorder", status.hasRecorder)
                 put("hasDisplay", status.hasDisplay)
@@ -1072,106 +842,7 @@ object RecordingManager {
         }
     }
     
-    @JvmStatic
-    fun recoverFromError(): Boolean {
-        return StateHolder.recordingWorker.enqueueTaskWithResult {
-            android.util.Log.d("RecordingManager", "recoverFromError: current=${StateHolder.status.get()}")
-            
-            try {
-                // 检查当前状态
-                val currentStatus = StateHolder.status.get()
-                if (currentStatus == RecordingStatus.IDLE) {
-                    android.util.Log.d("RecordingManager", "recoverFromError: Already in IDLE state")
-                    return@enqueueTaskWithResult true
-                }
-                
-                // 强制清理所有资源
-                safeRelease()
-                
-                // 取消所有定时器
-                StateHolder.mainHandler.removeCallbacksAndMessages(AUTO_STOP_TOKEN)
-                StateHolder.mainHandler.removeCallbacksAndMessages(TIMEOUT_TOKEN)
-                StateHolder.mainHandler.removeCallbacksAndMessages(PROGRESS_TOKEN)
-                
-                // 重置状态
-                StateHolder.status.set(RecordingStatus.IDLE)
-                StateHolder.clear()
-                
-                // 通知错误恢复
-                StateHolder.mainHandler.post {
-                    try { StateHolder.recordingCallback?.onRecordingError(4001, "Recording recovered from error state") } catch (_: Throwable) {}
-                    try { unityRecordingCallback?.onRecordingError(4001, "Recording recovered from error state") } catch (_: Throwable) {}
-                }
-                
-                android.util.Log.d("RecordingManager", "recoverFromError: Successfully recovered")
-                true
-            } catch (e: Exception) {
-                android.util.Log.e("RecordingManager", "recoverFromError failed", e)
-                false
-            }
-        }
-    }
     
-    @JvmStatic
-    fun convertVideoFormat(inputPath: String, outputFormat: Int, callback: (Boolean, String?) -> Unit) {
-        android.util.Log.d("RecordingManager", "convertVideoFormat called: $inputPath -> $outputFormat")
-        StateHolder.recordingWorker.enqueueTask {
-            android.util.Log.d("RecordingManager", "convertVideoFormat task started: $inputPath -> $outputFormat")
-            
-            try {
-                android.util.Log.d("RecordingManager", "Checking input file: $inputPath")
-                val inputFile = File(inputPath)
-                val exists = inputFile.exists()
-                val size = if (exists) inputFile.length() else -1
-                android.util.Log.d("RecordingManager", "Input file exists: $exists, size: $size")
-                
-                if (!exists) {
-                    android.util.Log.e("RecordingManager", "Input file not found: $inputPath")
-                    StateHolder.mainHandler.post { callback(false, "Input file not found: $inputPath") }
-                    return@enqueueTask
-                }
-                
-                if (size == 0L) {
-                    android.util.Log.e("RecordingManager", "Input file is empty: $inputPath")
-                    StateHolder.mainHandler.post { callback(false, "Input file is empty") }
-                    return@enqueueTask
-                }
-                
-                val outputPath = generateOutputPath(outputFormat)
-                android.util.Log.d("RecordingManager", "Output path generated: $outputPath")
-                val success = performFormatConversion(inputPath, outputPath, outputFormat)
-                android.util.Log.d("RecordingManager", "Conversion result: $success")
-                
-                StateHolder.mainHandler.post {
-                    android.util.Log.d("RecordingManager", "Calling callback with result: $success")
-                    if (success) {
-                        callback(true, outputPath)
-                        unityConvertCallback?.onConvertCompleted(true, outputPath)
-                    } else {
-                        callback(false, "Format conversion failed")
-                        unityConvertCallback?.onConvertCompleted(false, "Format conversion failed")
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("RecordingManager", "convertVideoFormat failed: ${e.message}", e)
-                StateHolder.mainHandler.post { 
-                    callback(false, "Conversion error: ${e.javaClass.simpleName}: ${e.message}")
-                    unityConvertCallback?.onConvertCompleted(false, "Conversion error: ${e.javaClass.simpleName}: ${e.message}")
-                }
-            }
-        }
-    }
-    
-    /**
-     * Unity 无回调重载，匹配桥接调用签名 (String, Int)V。
-     * 结果通过全局 unityConvertCallback 回调给 Unity。
-     */
-    @JvmStatic
-    fun convertVideoFormat(inputPath: String, outputFormat: Int) {
-        convertVideoFormat(inputPath, outputFormat) { success, outputPath ->
-            // 已在原实现中调用 unityConvertCallback；此处保持空实现即可
-        }
-    }
     
     /**
      * 开始进度监控
@@ -1220,12 +891,10 @@ object RecordingManager {
 
 
 private object RequestCodes {
-    const val RECORD_AUDIO = 10001
     const val SCREEN_CAPTURE = 10002
 }
 
 private object CallbackStore {
-    var permissionCallback: ((Boolean, Int, String?) -> Unit)? = null
     var screenCaptureCallback: ((Boolean, Int, String?) -> Unit)? = null
 }
 
@@ -1330,77 +999,6 @@ private fun buildOutputFile(context: Context): File {
     return outputFile
 }
 
-private fun generateOutputPath(format: Int): String {
-    val context = StateHolder.appContext
-    if (context == null) {
-        android.util.Log.e("RecordingManager", "Context not initialized in generateOutputPath")
-        throw IllegalStateException("Context not initialized")
-    }
-    
-    val base = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
-    val dir = File(base, "replay")
-    if (!dir.exists()) {
-        val created = dir.mkdirs()
-        android.util.Log.d("RecordingManager", "Created output directory: $created, path: ${dir.absolutePath}")
-    }
-    
-    val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-    val extension = when (format) {
-        OutputFormat.MP4 -> "mp4"
-        OutputFormat.GIF -> "gif"
-        OutputFormat.WEBM -> "webm"
-        OutputFormat.AVI -> "avi"
-        else -> "mp4"
-    }
-    val outputPath = File(dir, "converted_${ts}.${extension}").absolutePath
-    android.util.Log.d("RecordingManager", "Generated output path: $outputPath")
-    return outputPath
-}
-
-private fun performFormatConversion(inputPath: String, outputPath: String, format: Int): Boolean {
-    return try {
-        when (format) {
-            OutputFormat.MP4 -> {
-                // MP4转换：直接复制（假设输入已经是MP4）
-                val inputFile = File(inputPath)
-                val outputFile = File(outputPath)
-                inputFile.copyTo(outputFile, overwrite = true)
-                true
-            }
-            OutputFormat.GIF -> {
-                // GIF转换功能暂未实现，返回失败
-                android.util.Log.w("RecordingManager", "GIF conversion not implemented yet")
-                false
-            }
-            OutputFormat.WEBM -> {
-                // WEBM转换：简化实现
-                android.util.Log.w("RecordingManager", "WEBM conversion not implemented, copying file")
-                val inputFile = File(inputPath)
-                val outputFile = File(outputPath)
-                inputFile.copyTo(outputFile, overwrite = true)
-                true
-            }
-            OutputFormat.AVI -> {
-                // AVI转换：简化实现
-                android.util.Log.w("RecordingManager", "AVI conversion not implemented, copying file")
-                val inputFile = File(inputPath)
-                val outputFile = File(outputPath)
-                inputFile.copyTo(outputFile, overwrite = true)
-                true
-            }
-            else -> {
-                android.util.Log.w("RecordingManager", "Unknown format: $format, defaulting to MP4")
-                val inputFile = File(inputPath)
-                val outputFile = File(outputPath)
-                inputFile.copyTo(outputFile, overwrite = true)
-                true
-            }
-        }
-    } catch (e: Exception) {
-        android.util.Log.e("RecordingManager", "Format conversion failed", e)
-        false
-    }
-}
 
 private fun chooseSizeByQuality(metrics: DisplayMetrics, quality: Int): Pair<Int, Int> {
     val screenW = metrics.widthPixels

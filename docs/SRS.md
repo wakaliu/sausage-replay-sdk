@@ -60,9 +60,12 @@ Sausage Replay SDK提供以下核心功能：
 
 ---
 
-## 2.5 设备性能档位
-- Android：`LowEnd`（低端机）、`MidRange`（中端机，默认）、`HighEnd`（高端机）、`Flagship`（旗舰机）
-- iOS：`MidRange`（中端机，默认）、`HighEnd`（高端机）
+## 2.5 视频清晰度档位
+- **Basic**：720p30，4.5 Mbps
+- **Standard**：1080p30，8 Mbps（默认）
+- **Smooth**：720p60，7 Mbps
+- **HighFPS**：1080p60，14 Mbps
+- **Ultra**：1440p30/60，20 Mbps
 
 SDK需依据档位自适应：
 - 目标分辨率/FPS/比特率选择
@@ -232,13 +235,13 @@ SDK需依据档位自适应：
 
 #### 5.1.1 SDK管理接口（更新）
 ```csharp
-public enum DevicePerformanceTier
+public enum VideoQualityPreset
 {
-    // Android: LowEnd, MidRange, HighEnd, Flagship；iOS: MidRange, HighEnd
-    LowEnd,
-    MidRange, // default
-    HighEnd,
-    Flagship
+    Basic = 0,      // 720p30
+    Standard = 1,   // 1080p30 (default)
+    Smooth = 2,     // 720p60
+    HighFPS = 3,    // 1080p60
+    Ultra = 4       // 1440p30/60
 }
 
 public class SausageReplaySDK
@@ -246,9 +249,9 @@ public class SausageReplaySDK
     /// <summary>
     /// 初始化SDK（非阻塞，内部在后台线程完成初始化工作）。
     /// </summary>
-    /// <param name="tier">设备性能档位（不同平台可用档位见文档）</param>
+    /// <param name="preset">视频清晰度档位</param>
     /// <returns>是否接受初始化请求（同步返回）。完成状态通过日志或后续调用确认。</returns>
-    public static bool Initialize(DevicePerformanceTier tier = DevicePerformanceTier.MidRange);
+    public static bool Initialize(VideoQualityPreset preset = VideoQualityPreset.Standard);
     
     /// <summary>
     /// 检查平台支持性

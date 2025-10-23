@@ -14,7 +14,6 @@
 #import <mach/mach.h>
 
 static SRVideoQualityPreset _currentPreset = SRVideoQualityPresetStandard;
-static SRDevicePerformanceTier _currentTier = SRDevicePerformanceTierMidRange;
 static BOOL _isInitialized = NO;
 
 @implementation SausageReplayIOSSDK
@@ -37,17 +36,10 @@ const unsigned char SausageReplayVersionString[] = "1.0.0";
     // 设置视频清晰度档位
     _currentPreset = preset;
     
-    // 根据视频清晰度档位映射到设备性能档位（兼容性）
-    switch (preset) {
-        case SRVideoQualityPresetBasic:
-        case SRVideoQualityPresetSmooth:
-            _currentTier = SRDevicePerformanceTierMidRange;
-            break;
-        case SRVideoQualityPresetStandard:
-        case SRVideoQualityPresetHighFps:
-        case SRVideoQualityPresetUltra:
-            _currentTier = SRDevicePerformanceTierHighEnd;
-            break;
+    // 检查权限（内部使用，不暴露给Unity）
+    if (![SRPermissionManager hasScreenRecordingPermission]) {
+        NSLog(@"Screen recording not supported on this device");
+        return NO;
     }
     
     // 清理临时文件

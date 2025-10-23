@@ -47,17 +47,14 @@ unity/
 **关键方法**:
 ```csharp
 // 基础功能
-bool Initialize(DevicePerformanceTier tier)
+bool Initialize(VideoQualityPreset preset)
 bool StartRecording(RecordingConfig config, IRecordingCallback callback)
 void StopRecording()
-bool PauseRecording()
-bool ResumeRecording()
 
 // 高级功能
 DeviceTierInfo GetDeviceTierInfo()
-bool IsGifConversionSupported()
-void ConvertVideoFormat(string inputPath, OutputFormat format, Action<bool, string> callback)
-MemoryUsage GetMemoryUsage()
+RecordingStatus GetRecordingStatus()
+DetailedStatus GetDetailedStatus()
 ```
 
 ### 2. UnityMainThreadDispatcher.cs
@@ -135,7 +132,7 @@ public class RecordingConfig
     public string outputPath;              // 自定义输出路径
     public int? targetBitrate;             // 目标比特率
     public int targetFps;                  // 目标帧率
-    public DevicePerformanceTier performanceTier; // 设备档位
+    public int performanceTier; // 视频清晰度档位
 }
 ```
 
@@ -158,7 +155,7 @@ public class RecordingResult
 ```csharp
 public class DeviceTierInfo
 {
-    public DevicePerformanceTier tier;     // 设备档位
+    public int tier;     // 视频清晰度档位
     public string tierName;                // 档位名称
     public int maxWidth;                   // 最大宽度
     public int maxHeight;                  // 最大高度
@@ -170,12 +167,13 @@ public class DeviceTierInfo
 
 ### 枚举类型
 
-#### DevicePerformanceTier
-设备性能档位：
-- LOW_END: 低端设备
-- MID_RANGE: 中端设备（默认）
-- HIGH_END: 高端设备
-- FLAGSHIP: 旗舰设备
+#### VideoQualityPreset
+视频清晰度档位：
+- Basic: 720p30
+- Standard: 1080p30（默认）
+- Smooth: 720p60
+- HighFPS: 1080p60
+- Ultra: 1440p30/60
 
 #### VideoQuality
 视频质量等级：
@@ -285,7 +283,7 @@ private void InitializeSDK()
             if (granted)
             {
                 // 3. 初始化SDK
-                bool success = SausageReplaySDK.Initialize(DevicePerformanceTier.MID_RANGE);
+                bool success = SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
                 if (success)
                 {
                     // 4. 获取设备信息
@@ -298,7 +296,7 @@ private void InitializeSDK()
     else
     {
         // 直接初始化
-        SausageReplaySDK.Initialize(DevicePerformanceTier.MID_RANGE);
+        SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
     }
 }
 ```

@@ -98,8 +98,8 @@
 // 初始化SDK，自动检测设备档位
 SausageReplayAndroidSDK.initialize(context)
 
-// 手动指定设备档位
-SausageReplayAndroidSDK.initialize(context, DevicePerformanceTier.HIGH_END)
+// 手动指定视频清晰度档位
+SausageReplayAndroidSDK.initialize(context, VideoQualityPreset.HIGH_FPS)
 ```
 
 ### 2. 获取档位信息（高级API）

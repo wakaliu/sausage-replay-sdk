@@ -53,10 +53,11 @@ Android AAR (Kotlin)
 
 ## 2.3 设备性能档位（Android）
 可选档位：
-- `LowEnd`（低端机）
-- `MidRange`（中端机，默认）
-- `HighEnd`（高端机）
-- `Flagship`（旗舰机）
+- `Basic`（720p30，4.5 Mbps）
+- `Standard`（1080p30，8 Mbps，默认）
+- `Smooth`（720p60，7 Mbps）
+- `HighFPS`（1080p60，14 Mbps）
+- `Ultra`（1440p30/60，20 Mbps）
 
 档位影响：编码分辨率/FPS/比特率、缓冲深度、线程与任务调度策略、是否启用GIF转码。
 
@@ -78,9 +79,9 @@ Android AAR (Kotlin)
 
 ### FR-AND-003 屏幕录制
 - 使用`MediaProjection`创建`VirtualDisplay`，`Surface`接入`MediaRecorder`视频源。
-- 分辨率：根据设备档位自动选择（LowEnd/480p, MidRange/720p, HighEnd/1080p, Flagship/1080p）。
-- 帧率：根据设备档位自动设置（LowEnd/25-30fps, MidRange/30fps, HighEnd/30fps, Flagship/30-60fps）。
-- 比特率：根据设备档位和分辨率自动计算（LowEnd/1.5-3Mbps, MidRange/3-6Mbps, HighEnd/6-10Mbps, Flagship/8-12Mbps）。
+- 分辨率：根据视频清晰度档位自动选择（Basic/720p, Standard/1080p, Smooth/720p, HighFPS/1080p, Ultra/1440p）。
+- 帧率：根据视频清晰度档位自动设置（Basic/30fps, Standard/30fps, Smooth/60fps, HighFPS/60fps, Ultra/30-60fps）。
+- 比特率：根据视频清晰度档位自动计算（Basic/4.5Mbps, Standard/8Mbps, Smooth/7Mbps, HighFPS/14Mbps, Ultra/20Mbps）。
 - 录制时长：默认60s；到时自动停止并回调。
 
 ### FR-AND-004 音频录制
@@ -138,10 +139,16 @@ Android AAR (Kotlin)
 
 ### 5.1 Kotlin对外API（更新）
 ```kotlin
-enum class DevicePerformanceTier { LOW_END, MID_RANGE, HIGH_END, FLAGSHIP }
+object VideoQualityPreset {
+    const val BASIC = 0      // 720p30
+    const val STANDARD = 1   // 1080p30
+    const val SMOOTH = 2     // 720p60
+    const val HIGH_FPS = 3   // 1080p60
+    const val ULTRA = 4      // 1440p30/60
+}
 
 object SausageReplayAndroidSDK {
-    fun initialize(context: Context, tier: DevicePerformanceTier = DevicePerformanceTier.MID_RANGE): Boolean
+    fun initialize(context: Context, preset: Int = VideoQualityPreset.STANDARD): Boolean
     fun isPlatformSupported(): Boolean
     fun getVersion(): String
     fun release()

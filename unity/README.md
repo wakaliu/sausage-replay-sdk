@@ -59,7 +59,7 @@ public class RecordingController : MonoBehaviour, IRecordingCallback
             if (granted)
             {
                 // 2. 初始化SDK
-                bool success = SausageReplaySDK.Initialize(DevicePerformanceTier.MID_RANGE);
+                bool success = SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
                 if (success)
                 {
                     Debug.Log("SDK初始化成功");
@@ -115,22 +115,11 @@ public class RecordingController : MonoBehaviour, IRecordingCallback
 主要的SDK接口类，提供所有录制功能。
 
 **主要方法：**
-- `Initialize(DevicePerformanceTier tier)` - 初始化SDK
+- `Initialize(VideoQualityPreset preset)` - 初始化SDK
 - `StartRecording(RecordingConfig config, IRecordingCallback callback)` - 开始录制
 - `StopRecording()` - 停止录制
-- `PauseRecording()` - 暂停录制
-- `ResumeRecording()` - 恢复录制
 - `AdjustRecordingQuality(VideoQuality quality)` - 调整录制质量
 
-#### SausageReplayPermissionManager
-
-权限管理器，处理Android权限请求。
-
-**主要方法：**
-- `RequestAllRequiredPermissions(Action<bool, int, string> callback)` - 请求所有必需权限
-- `HasMicrophonePermission()` - 检查麦克风权限
-- `HasStoragePermission()` - 检查存储权限
-- `OpenAppSettings()` - 打开应用设置页面
 
 ### 数据结构
 
@@ -149,7 +138,7 @@ public class RecordingConfig
     public string outputPath = null;                          // 自定义输出路径
     public int? targetBitrate = null;                         // 目标比特率
     public int targetFps = 30;                                // 目标帧率
-    public DevicePerformanceTier performanceTier = DevicePerformanceTier.MID_RANGE; // 设备档位
+    public int performanceTier = (int)VideoQualityPreset.Standard; // 视频清晰度档位
 }
 ```
 
@@ -171,13 +160,14 @@ public class RecordingResult
 
 ### 枚举类型
 
-#### DevicePerformanceTier
+#### VideoQualityPreset
 
-设备性能档位：
-- `LOW_END` - 低端设备
-- `MID_RANGE` - 中端设备（默认）
-- `HIGH_END` - 高端设备
-- `FLAGSHIP` - 旗舰设备
+视频清晰度档位：
+- `Basic` - 720p30
+- `Standard` - 1080p30（默认）
+- `Smooth` - 720p60
+- `HighFPS` - 1080p60
+- `Ultra` - 1440p30/60
 
 #### VideoQuality
 

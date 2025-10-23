@@ -68,8 +68,8 @@ class SausageReplayAndroidSDKTest {
         assertTrue("Default should include audio", config.includeAudio)
         assertEquals("Default output format should be MP4", OutputFormat.MP4, config.outputFormat)
         assertEquals("Default target FPS should be 30", 30, config.targetFps)
-        assertEquals("Default performance tier should be MID_RANGE", 
-            DevicePerformanceTier.MID_RANGE, config.performanceTier)
+        assertEquals("Default performance tier should be STANDARD", 
+            VideoQualityPreset.STANDARD, config.performanceTier)
     }
     
     @Test

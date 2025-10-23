@@ -19,32 +19,6 @@ object DeviceTierManager {
     private var performanceMonitor: PerformanceMonitor? = null
     private var isInitialized = false
     
-    /**
-     * 初始化设备档位管理器
-     */
-    fun initialize(context: Context, tier: Int? = null): Boolean {
-        return try {
-            // 加载配置文件
-            if (!DeviceTierConfig.loadConfig(context)) {
-                Log.w(TAG, "Failed to load config, using default values")
-            }
-            
-            // 检测或设置设备档位
-            val detectedTier = tier ?: detectDeviceTier(context)
-            currentTier.set(detectedTier)
-            
-            // 获取档位配置
-            tierConfig = DeviceTierConfig.getPresetConfig(detectedTier)
-            adaptiveStrategies = DeviceTierConfig.getAdaptiveStrategies()
-            
-            Log.i(TAG, "Device tier manager initialized: ${tierConfig?.name} (${detectedTier})")
-            isInitialized = true
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize device tier manager", e)
-            false
-        }
-    }
     
     /**
      * 使用视频清晰度档位初始化设备档位管理器
@@ -137,25 +111,6 @@ object DeviceTierManager {
         )
     }
     
-    /**
-     * 检查GIF转换是否支持
-     */
-    fun isGifConversionSupported(): Boolean {
-        return tierConfig?.gifStrategy?.enabled ?: false
-    }
-    
-    /**
-     * 获取GIF转换参数
-     */
-    fun getGifConversionParams(): GifConversionParams? {
-        val gifStrategy = tierConfig?.gifStrategy ?: return null
-        
-        return GifConversionParams(
-            maxFps = gifStrategy.maxFps,
-            maxResolution = gifStrategy.maxResolution,
-            maxDurationSeconds = gifStrategy.maxDurationSeconds
-        )
-    }
     
     /**
      * 应用自适应调整
@@ -196,75 +151,6 @@ object DeviceTierManager {
         )
     }
     
-    /**
-     * 检测设备档位
-     */
-    private fun detectDeviceTier(context: Context): Int {
-        return try {
-            val metrics = context.resources.displayMetrics
-            val totalMemory = Runtime.getRuntime().maxMemory()
-            val cpuCores = Runtime.getRuntime().availableProcessors()
-            
-            // 简单的设备档位检测逻辑
-            val score = calculateDeviceScore(metrics, totalMemory, cpuCores)
-            
-            when {
-                score >= 80 -> VideoQualityPreset.ULTRA
-                score >= 60 -> VideoQualityPreset.HIGH_FPS
-                score >= 40 -> VideoQualityPreset.STANDARD
-                else -> VideoQualityPreset.BASIC
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to detect device tier, using default", e)
-            VideoQualityPreset.STANDARD
-        }
-    }
-    
-    /**
-     * 计算设备评分
-     */
-    private fun calculateDeviceScore(metrics: DisplayMetrics, totalMemory: Long, cpuCores: Int): Int {
-        var score = 0
-        
-        // 内存评分 (0-30分)
-        val memoryGB = totalMemory / (1024 * 1024 * 1024)
-        score += when {
-            memoryGB >= 8 -> 30
-            memoryGB >= 6 -> 25
-            memoryGB >= 4 -> 20
-            memoryGB >= 3 -> 15
-            memoryGB >= 2 -> 10
-            else -> 5
-        }
-        
-        // CPU核心评分 (0-25分)
-        score += when {
-            cpuCores >= 8 -> 25
-            cpuCores >= 6 -> 20
-            cpuCores >= 4 -> 15
-            cpuCores >= 2 -> 10
-            else -> 5
-        }
-        
-        // 屏幕分辨率评分 (0-25分)
-        val pixelCount = metrics.widthPixels * metrics.heightPixels
-        score += when {
-            pixelCount >= 1920 * 1080 -> 25
-            pixelCount >= 1280 * 720 -> 20
-            pixelCount >= 854 * 480 -> 15
-            else -> 10
-        }
-        
-        // 密度评分 (0-20分)
-        score += when {
-            metrics.densityDpi >= 480 -> 20
-            metrics.densityDpi >= 320 -> 15
-            metrics.densityDpi >= 240 -> 10
-            else -> 5
-        }
-        
-        return score
-    }
     
     /**
      * 计算分辨率
@@ -354,11 +240,3 @@ data class RecordingParams(
     val threadCount: Int
 )
 
-/**
- * GIF转换参数数据类
- */
-data class GifConversionParams(
-    val maxFps: Int,
-    val maxResolution: Resolution,
-    val maxDurationSeconds: Int
-)

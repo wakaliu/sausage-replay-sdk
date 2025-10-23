@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace SausageReplay
 {
-    // 回调实现已迁移到 UnityRecordingCallbacks.cs
 
     /// <summary>
     /// Sausage Replay SDK 主接口
@@ -94,18 +93,6 @@ namespace SausageReplay
             public string errorMessage;
         }
 
-        /// <summary>
-        /// 内存使用情况
-        /// </summary>
-        [Serializable]
-        public class MemoryUsage
-        {
-            public long totalMemory;
-            public long usedMemory;
-            public long freeMemory;
-            public long maxMemory;
-            public int usagePercentage;
-        }
 
         /// <summary>
         /// 详细状态信息
@@ -114,7 +101,6 @@ namespace SausageReplay
         public class DetailedStatus
         {
             public RecordingStatus status;
-            public MemoryUsage memoryUsage;
             public DeviceTierInfo deviceTierInfo; // 替换为设备档位信息
             public bool hasProjection;
             public bool hasRecorder;
@@ -138,17 +124,6 @@ namespace SausageReplay
             public bool gifSupported;
         }
 
-        /// <summary>
-        /// GIF转换参数
-        /// </summary>
-        [Serializable]
-        public class GifConversionParams
-        {
-            public int maxFps;
-            public int maxWidth;
-            public int maxHeight;
-            public int maxDurationSeconds;
-        }
 
         /// <summary>
         /// 性能指标
@@ -473,51 +448,6 @@ namespace SausageReplay
              }
          }
 
-        /// <summary>
-        /// 暂停录制
-        /// </summary>
-        /// <returns>是否成功暂停</returns>
-        public static bool PauseRecording()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
-
-            try
-            {
-                return SausageReplaySDK_PauseRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception pausing recording: {e.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 恢复录制
-        /// </summary>
-        /// <returns>是否成功恢复</returns>
-        public static bool ResumeRecording()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
-
-            try
-            {
-                return SausageReplaySDK_ResumeRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception resuming recording: {e.Message}");
-                return false;
-            }
-        }
 
         /// <summary>
         /// 调整录制质量
@@ -543,43 +473,6 @@ namespace SausageReplay
             }
         }
 
-        /// <summary>
-        /// 转换视频格式
-        /// </summary>
-        /// <param name="inputPath">输入文件路径</param>
-        /// <param name="outputFormat">目标格式</param>
-        /// <param name="callback">转换结果回调</param>
-        public static void ConvertVideoFormat(string inputPath, OutputFormat outputFormat, Action<bool, string> callback)
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                callback?.Invoke(false, "SDK not initialized");
-                return;
-            }
-
-            try
-            {
-#if UNITY_IOS && !UNITY_EDITOR
-                // iOS需要IntPtr类型的回调
-                IntPtr callbackPtr = IntPtr.Zero;
-                if (callback != null)
-                {
-                    // 创建一个委托来包装回调
-                    var callbackDelegate = new Action<bool, string>((success, path) => callback(success, path));
-                    callbackPtr = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
-                }
-                SausageReplaySDK_ConvertVideoFormat(inputPath, (int)outputFormat, callbackPtr);
-#else
-                SausageReplaySDK_ConvertVideoFormat(inputPath, (int)outputFormat, callback);
-#endif
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception converting format: {e.Message}");
-                callback?.Invoke(false, e.Message);
-            }
-        }
 
         /// <summary>
         /// 获取录制状态
@@ -626,72 +519,6 @@ namespace SausageReplay
             }
         }
 
-        /// <summary>
-        /// 获取内存使用情况
-        /// </summary>
-        /// <returns>内存使用信息</returns>
-        public static MemoryUsage GetMemoryUsage()
-        {
-            if (!_isInitialized)
-            {
-                return null;
-            }
-
-            try
-            {
-                string memoryJson = SausageReplaySDK_GetMemoryUsage();
-                return JsonUtility.FromJson<MemoryUsage>(memoryJson);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception getting memory usage: {e.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 错误恢复
-        /// </summary>
-        /// <returns>是否成功恢复</returns>
-        public static bool RecoverFromError()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
-
-            try
-            {
-                return SausageReplaySDK_RecoverFromError();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception recovering from error: {e.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 重置状态
-        /// </summary>
-        public static void ResetStatus()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return;
-            }
-
-            try
-            {
-                SausageReplaySDK_ResetStatus();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception resetting status: {e.Message}");
-            }
-        }
 
         /// <summary>
         /// 释放SDK资源
@@ -722,50 +549,6 @@ namespace SausageReplay
         #region 高级API
 
 
-        /// <summary>
-        /// 检查GIF转换是否支持
-        /// </summary>
-        /// <returns>是否支持</returns>
-        public static bool IsGifConversionSupported()
-        {
-            if (!_isInitialized)
-            {
-                return false;
-            }
-
-            try
-            {
-                return SausageReplaySDK_IsGifConversionSupported();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception checking GIF support: {e.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 获取GIF转换参数
-        /// </summary>
-        /// <returns>GIF转换参数</returns>
-        public static GifConversionParams GetGifConversionParams()
-        {
-            if (!_isInitialized)
-            {
-                return null;
-            }
-
-            try
-            {
-                string paramsJson = SausageReplaySDK_GetGifConversionParams();
-                return JsonUtility.FromJson<GifConversionParams>(paramsJson);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception getting GIF params: {e.Message}");
-                return null;
-            }
-        }
 
 
         #endregion
@@ -794,11 +577,6 @@ namespace SausageReplay
         [DllImport("__Internal")]
         private static extern void SausageReplaySDK_StopRecording();
         
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_PauseRecording();
-        
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_ResumeRecording();
         
         [DllImport("__Internal")]
         private static extern int SausageReplaySDK_GetRecordingStatus();
@@ -809,32 +587,11 @@ namespace SausageReplay
         [DllImport("__Internal")]
         private static extern string SausageReplaySDK_GetDetailedStatus();
         
-        [DllImport("__Internal")]
-        private static extern string SausageReplaySDK_GetMemoryUsage();
-        
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_RecoverFromError();
-        
-        [DllImport("__Internal")]
-        private static extern void SausageReplaySDK_ResetStatus();
         
         [DllImport("__Internal")]
         private static extern int SausageReplaySDK_GetCurrentPreset();
         
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_IsGifConversionSupported();
         
-        [DllImport("__Internal")]
-        private static extern string SausageReplaySDK_GetGifConversionParams();
-        
-        [DllImport("__Internal")]
-        private static extern void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback);
-        
-        [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_HasMicrophonePermission();
-        
-        [DllImport("__Internal")]
-        private static extern void SausageReplaySDK_RequestMicrophonePermission(System.IntPtr callback);
 
 
         // iOS 方法实现
@@ -1043,31 +800,6 @@ namespace SausageReplay
             }
         }
 
-        private static bool SausageReplaySDK_PauseRecording()
-        {
-            try
-            {
-                return RecordingManagerClass.CallStatic<bool>("pauseRecording");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to pause recording: {e.Message}");
-                return false;
-            }
-        }
-
-        private static bool SausageReplaySDK_ResumeRecording()
-        {
-            try
-            {
-                return RecordingManagerClass.CallStatic<bool>("resumeRecording");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to resume recording: {e.Message}");
-                return false;
-            }
-        }
 
         private static bool SausageReplaySDK_AdjustRecordingQuality(int quality)
         {
@@ -1082,19 +814,6 @@ namespace SausageReplay
             }
         }
 
-        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, Action<bool, string> callback)
-        {
-            try
-            {
-                // 直接调用，无需传入 Runnable；结果由全局回调处理
-                RecordingManagerClass.CallStatic("convertVideoFormat", inputPath, outputFormat);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to convert video format: {e.Message}");
-                callback?.Invoke(false, e.Message);
-            }
-        }
 
         private static int SausageReplaySDK_GetRecordingStatus()
         {
@@ -1122,43 +841,7 @@ namespace SausageReplay
             }
         }
 
-        private static string SausageReplaySDK_GetMemoryUsage()
-        {
-            try
-            {
-                return SdkClass.CallStatic<string>("getMemoryUsage");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to get memory usage: {e.Message}");
-                return "{}";
-            }
-        }
 
-        private static bool SausageReplaySDK_RecoverFromError()
-        {
-            try
-            {
-                return RecordingManagerClass.CallStatic<bool>("recoverFromError");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to recover from error: {e.Message}");
-                return false;
-            }
-        }
-
-        private static void SausageReplaySDK_ResetStatus()
-        {
-            try
-            {
-                RecordingManagerClass.CallStatic("resetStatus");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to reset status: {e.Message}");
-            }
-        }
 
         private static void SausageReplaySDK_Release()
         {
@@ -1184,65 +867,8 @@ namespace SausageReplay
         }
 
 
-        private static bool SausageReplaySDK_IsGifConversionSupported()
-        {
-            try
-            {
-                return SdkClass.CallStatic<bool>("isGifConversionSupported");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to check GIF conversion support: {e.Message}");
-                return false;
-            }
-        }
-
-        private static string SausageReplaySDK_GetGifConversionParams()
-        {
-            try
-            {
-                return SdkClass.CallStatic<string>("getGifConversionParams");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to get GIF conversion params: {e.Message}");
-                return "{}";
-            }
-        }
 
 
-        // 权限相关方法
-        private static bool SausageReplaySDK_HasMicrophonePermission()
-        {
-            try
-            {
-                return PermissionManagerClass.CallStatic<bool>("hasMicrophonePermission", CurrentActivity);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to check microphone permission: {e.Message}");
-                return false;
-            }
-        }
-
-        private static void SausageReplaySDK_RequestMicrophonePermission()
-        {
-            try
-            {
-                // 改为使用 Unity 权限管理器的实现，去除未定义回调依赖
-                SausageReplayPermissionManager.RequestMicrophonePermission((granted, code, msg) =>
-                {
-                    if (!granted && !string.IsNullOrEmpty(msg))
-                    {
-                        Debug.LogError($"Microphone permission denied: {code} - {msg}");
-                    }
-                });
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to request microphone permission: {e.Message}");
-            }
-        }
 
         private static bool SausageReplaySDK_StartProgressMonitoring()
         {
@@ -1277,24 +903,11 @@ namespace SausageReplay
         private static string SausageReplaySDK_GetVersion() => "1.0.0";
         private static bool SausageReplaySDK_StartRecording() => false;
         private static void SausageReplaySDK_StopRecording() { }
-        private static bool SausageReplaySDK_PauseRecording() => false;
-        private static bool SausageReplaySDK_ResumeRecording() => false;
         private static bool SausageReplaySDK_AdjustRecordingQuality(int quality) => false;
-        private static void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, Action<bool, string> callback) 
-        {
-            callback?.Invoke(false, "Not supported in editor");
-        }
         private static int SausageReplaySDK_GetRecordingStatus() => 0;
         private static string SausageReplaySDK_GetDetailedStatus() => "{}";
-        private static string SausageReplaySDK_GetMemoryUsage() => "{}";
-        private static bool SausageReplaySDK_RecoverFromError() => false;
-        private static void SausageReplaySDK_ResetStatus() { }
         private static void SausageReplaySDK_Release() { }
         private static int SausageReplaySDK_GetCurrentPreset() => 1; // Standard
-        private static bool SausageReplaySDK_IsGifConversionSupported() => false;
-        private static string SausageReplaySDK_GetGifConversionParams() => "{}";
-        private static bool SausageReplaySDK_HasMicrophonePermission() => false;
-        private static void SausageReplaySDK_RequestMicrophonePermission() { }
         private static bool SausageReplaySDK_StartProgressMonitoring() => false;
         private static void SausageReplaySDK_StopProgressMonitoring() { }
 #endif

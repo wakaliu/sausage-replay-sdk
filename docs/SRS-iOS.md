@@ -36,7 +36,6 @@
 Unity (C# API)
   ↕ Unity-iOS Bridge (Objective-C)
 SausageReplay.xcframework (Objective-C)
-  ├─ SRPermissionManager
   ├─ SRRecordingManager (ReplayKit + AVAssetWriter)
   ├─ SRFileManager
   └─ SRConfig/Models
@@ -47,9 +46,12 @@ SausageReplay.xcframework (Objective-C)
 - 前台录制；后台不支持。
 - 存储：应用沙盒私有目录；文件清理可配置。
 
-### 2.3 设备性能档位（iOS）
-- `MidRange`（中端机，默认）
-- `HighEnd`（高端机）
+### 2.3 视频清晰度档位（iOS）
+- `Basic`（720p30，4.5 Mbps）
+- `Standard`（1080p30，8 Mbps，默认）
+- `Smooth`（720p60，7 Mbps）
+- `HighFPS`（1080p60，14 Mbps）
+- `Ultra`（1440p30/60，20 Mbps）
 
 档位影响：编码分辨率/FPS/比特率、缓冲深度、任务调度策略、是否启用GIF转码。
 
@@ -117,40 +119,33 @@ SausageReplay.xcframework (Objective-C)
 
 ### 5.1 Objective-C 对外API（供Unity调用）
 ```objective-c
-// 设备档位
-typedef NS_ENUM(NSInteger, SRDevicePerformanceTier) {
-    SRDevicePerformanceTierMidRange = 0,
-    SRDevicePerformanceTierHighEnd = 1
+// 视频清晰度档位
+typedef NS_ENUM(NSInteger, SRVideoQualityPreset) {
+    SRVideoQualityPresetBasic = 0,      // 720p30
+    SRVideoQualityPresetStandard = 1,   // 1080p30
+    SRVideoQualityPresetSmooth = 2,     // 720p60
+    SRVideoQualityPresetHighFps = 3,    // 1080p60
+    SRVideoQualityPresetUltra = 4       // 1440p30/60
 };
 
 @interface SausageReplayIOSSDK : NSObject
-+ (BOOL)initializeWithTier:(SRDevicePerformanceTier)tier;
++ (BOOL)initializeWithPreset:(SRVideoQualityPreset)preset;
 + (BOOL)isPlatformSupported;
 + (NSString *)version;
 + (void)releaseResources;
 @end
 
-@interface SRPermissionManager : NSObject
-+ (BOOL)hasMicrophonePermission;
-+ (void)requestMicrophonePermission:(void(^)(BOOL granted, NSInteger errorCode, NSString * _Nullable message))callback;
-@end
 
 typedef NS_ENUM(NSInteger, SRRecordingStatus) {
     SRRecordingStatusIdle,
     SRRecordingStatusRecording,
-    SRRecordingStatusPaused,
     SRRecordingStatusStopping
 };
 
-typedef NS_ENUM(NSInteger, SROutputFormat) {
-    SROutputFormatMP4,
-    SROutputFormatGIF
-};
 
 @interface SRRecordingConfig : NSObject
 @property (nonatomic, assign) NSInteger maxDurationSeconds; // default 60
 @property (nonatomic, assign) BOOL includeAudio; // default YES
-@property (nonatomic, assign) SROutputFormat format; // default MP4
 @property (nonatomic, copy) NSString * _Nullable outputPath;
 @property (nonatomic, assign) NSInteger targetBitrate; // optional
 @property (nonatomic, assign) NSInteger targetFps; // default 30
@@ -159,8 +154,6 @@ typedef NS_ENUM(NSInteger, SROutputFormat) {
 @interface SRRecordingManager : NSObject
 + (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config;
 + (void)stopRecording:(void(^)(BOOL success, NSString * _Nullable filePath, long long fileSize, float duration, NSInteger errorCode, NSString * _Nullable message))callback;
-+ (void)pauseRecording;
-+ (void)resumeRecording;
 + (SRRecordingStatus)status;
 @end
 ```

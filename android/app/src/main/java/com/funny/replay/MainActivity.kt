@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import android.widget.TextView
 import com.funny.replaysdk.VideoQualityPreset
-import com.funny.replaysdk.PermissionManager
 import com.funny.replaysdk.SausageReplayAndroidSDK
 import com.funny.replaysdk.RecordingConfig
 import com.funny.replaysdk.RecordingManager
@@ -29,15 +28,12 @@ import android.media.ToneGenerator
 
 class MainActivity : AppCompatActivity() {
     
-    private lateinit var tvMemory: TextView
     private lateinit var tvFps: TextView
     private lateinit var tvStatus: TextView
     
     // 按钮引用
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
-    private lateinit var btnPause: Button
-    private lateinit var btnResume: Button
     private lateinit var btnPresetBasic: Button
     private lateinit var btnPresetStandard: Button
     private lateinit var btnPresetSmooth: Button
@@ -69,15 +65,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         
         // 初始化性能监控UI
-        tvMemory = findViewById(R.id.tv_memory)
         tvFps = findViewById(R.id.tv_fps)
         tvStatus = findViewById(R.id.tv_status)
         
         // 初始化按钮引用
         btnStart = findViewById(R.id.btn_start)
         btnStop = findViewById(R.id.btn_stop)
-        btnPause = findViewById(R.id.btn_pause)
-        btnResume = findViewById(R.id.btn_resume)
         btnPresetBasic = findViewById(R.id.btn_preset_basic)
         btnPresetStandard = findViewById(R.id.btn_preset_standard)
         btnPresetSmooth = findViewById(R.id.btn_preset_smooth)
@@ -92,10 +85,6 @@ class MainActivity : AppCompatActivity() {
         // 启动性能监控
         startPerformanceMonitoring()
         startFpsMonitoring()
-        // 最小权限申请示例
-        PermissionManager.requestMicrophonePermission(this) { granted, code, msg ->
-            Toast.makeText(this, "Mic perm: $granted code=$code", Toast.LENGTH_SHORT).show()
-        }
 
         btnStart.setOnClickListener {
             val callback = object : com.funny.replaysdk.RecordingCallback {
@@ -130,23 +119,6 @@ class MainActivity : AppCompatActivity() {
                             progressToast?.cancel()
                             progressToast = null
                         }
-                    }
-                }
-                override fun onRecordingPaused() {
-                    runOnUiThread {
-                        // 取消进度Toast
-                        progressToast?.cancel()
-                        progressToast = null
-                        Toast.makeText(this@MainActivity, "录制已暂停", Toast.LENGTH_SHORT).show()
-                        updateRecordingStatus(com.funny.replaysdk.RecordingStatus.PAUSED)
-                        updateButtonStates(com.funny.replaysdk.RecordingStatus.PAUSED)
-                    }
-                }
-                override fun onRecordingResumed() {
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, "录制已恢复", Toast.LENGTH_SHORT).show()
-                        updateRecordingStatus(com.funny.replaysdk.RecordingStatus.RECORDING)
-                        updateButtonStates(com.funny.replaysdk.RecordingStatus.RECORDING)
                     }
                 }
                 override fun onRecordingQualityAdjusted(quality: Int) {
@@ -238,21 +210,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        btnPause.setOnClickListener {
-            val success = RecordingManager.pauseRecording()
-            Toast.makeText(this, "暂停录制: $success", Toast.LENGTH_SHORT).show()
-            if (success) {
-                updateButtonStates(com.funny.replaysdk.RecordingStatus.PAUSED)
-            }
-        }
-        
-        btnResume.setOnClickListener {
-            val success = RecordingManager.resumeRecording()
-            Toast.makeText(this, "恢复录制: $success", Toast.LENGTH_SHORT).show()
-            if (success) {
-                updateButtonStates(com.funny.replaysdk.RecordingStatus.RECORDING)
-            }
-        }
         
         btnPresetBasic.setOnClickListener {
             val ok = SausageReplayAndroidSDK.initialize(this, VideoQualityPreset.BASIC)
@@ -335,7 +292,6 @@ class MainActivity : AppCompatActivity() {
             val detailedStatus = RecordingManager.getDetailedStatus()
             val statusText = """
                 状态: ${detailedStatus.status}
-                内存: ${detailedStatus.memoryUsage.usagePercentage}%
                 投影: ${detailedStatus.hasProjection}
                 录制器: ${detailedStatus.hasRecorder}
                 显示: ${detailedStatus.hasDisplay}
@@ -350,51 +306,8 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
         
-        findViewById<Button>(R.id.btn_recover).setOnClickListener {
-            // 取消进度Toast
-            progressToast?.cancel()
-            progressToast = null
-            val success = RecordingManager.recoverFromError()
-            Toast.makeText(this, "错误恢复: $success", Toast.LENGTH_SHORT).show()
-        }
         
-        // 格式转换按钮
-        findViewById<Button>(R.id.btn_convert_gif).setOnClickListener {
-            // GIF转换功能开发中，显示提示
-            android.app.AlertDialog.Builder(this)
-                .setTitle("功能开发中")
-                .setMessage("GIF转换功能正在开发中，敬请期待！\n\n当前版本暂不支持GIF格式转换，请使用其他格式或等待后续更新。")
-                .setPositiveButton("确定", null)
-                .setNeutralButton("查看MP4文件") { _, _ ->
-                    // 提供查看原始MP4文件的选项
-                    if (lastVideoPath != null) {
-                        val file = File(lastVideoPath!!)
-                        if (file.exists()) {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            intent.setDataAndType(android.net.Uri.fromFile(file), "video/mp4")
-                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            try {
-                                startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(this, "无法打开视频文件: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            Toast.makeText(this, "视频文件不存在", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(this, "请先录制一个视频", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                .show()
-        }
         
-        findViewById<Button>(R.id.btn_convert_webm).setOnClickListener {
-            convertLastVideo(com.funny.replaysdk.OutputFormat.WEBM)
-        }
-        
-        findViewById<Button>(R.id.btn_convert_avi).setOnClickListener {
-            convertLastVideo(com.funny.replaysdk.OutputFormat.AVI)
-        }
         
         // 音频播放按钮
         findViewById<Button>(R.id.btn_play_audio).setOnClickListener {
@@ -409,7 +322,6 @@ class MainActivity : AppCompatActivity() {
     private fun startPerformanceMonitoring() {
         val performanceRunnable = object : Runnable {
             override fun run() {
-                updateMemoryInfo()
                 updateFpsInfo()
                 updateRecordingStatus(RecordingManager.getRecordingStatus())
                 performanceHandler.postDelayed(this, 1000) // 每秒更新一次
@@ -423,19 +335,6 @@ class MainActivity : AppCompatActivity() {
         choreographer?.postFrameCallback(frameCallback)
     }
     
-    private fun updateMemoryInfo() {
-        val memoryUsage = com.funny.replaysdk.SausageReplayAndroidSDK.getMemoryUsage()
-        val usedMemoryMB = memoryUsage.usedMemory / (1024 * 1024)
-        val totalMemoryMB = memoryUsage.totalMemory / (1024 * 1024)
-        val maxMemoryMB = memoryUsage.maxMemory / (1024 * 1024)
-        val usagePercent = memoryUsage.usagePercentage
-        
-        tvMemory.text = "内存: ${usedMemoryMB}MB/${totalMemoryMB}MB (${usagePercent}%)\n最大: ${maxMemoryMB}MB"
-        
-        // 调试日志
-        val freeMemoryMB = memoryUsage.freeMemory / (1024 * 1024)
-        android.util.Log.d("MemoryMonitor", "Memory: used=${usedMemoryMB}MB, total=${totalMemoryMB}MB, free=${freeMemoryMB}MB, max=${maxMemoryMB}MB")
-    }
     
     private fun updateFpsInfo() {
         // 基于Choreographer的FPS计算
@@ -454,7 +353,6 @@ class MainActivity : AppCompatActivity() {
         val statusText = when (status) {
             com.funny.replaysdk.RecordingStatus.IDLE -> "状态: 空闲"
             com.funny.replaysdk.RecordingStatus.RECORDING -> "状态: 录制中"
-            com.funny.replaysdk.RecordingStatus.PAUSED -> "状态: 暂停"
             com.funny.replaysdk.RecordingStatus.STOPPING -> "状态: 停止中"
             else -> "状态: 未知"
         }
@@ -467,8 +365,6 @@ class MainActivity : AppCompatActivity() {
                 // 空闲状态：只能开始录制
                 btnStart.isEnabled = true
                 btnStop.isEnabled = false
-                btnPause.isEnabled = false
-                btnResume.isEnabled = false
                 btnPresetBasic.isEnabled = false
                 btnPresetStandard.isEnabled = false
                 btnPresetSmooth.isEnabled = false
@@ -478,8 +374,6 @@ class MainActivity : AppCompatActivity() {
                 // 设置按钮样式
                 setButtonStyle(btnStart, true)
                 setButtonStyle(btnStop, false)
-                setButtonStyle(btnPause, false)
-                setButtonStyle(btnResume, false)
                 setButtonStyle(btnPresetBasic, false)
                 setButtonStyle(btnPresetStandard, false)
                 setButtonStyle(btnPresetSmooth, false)
@@ -487,11 +381,9 @@ class MainActivity : AppCompatActivity() {
                 setButtonStyle(btnPresetUltra, false)
             }
             com.funny.replaysdk.RecordingStatus.RECORDING -> {
-                // 录制中：可以停止、暂停、调整质量
+                // 录制中：可以停止、调整质量
                 btnStart.isEnabled = false
                 btnStop.isEnabled = true
-                btnPause.isEnabled = true
-                btnResume.isEnabled = false
                 btnPresetBasic.isEnabled = true
                 btnPresetStandard.isEnabled = true
                 btnPresetSmooth.isEnabled = true
@@ -501,43 +393,16 @@ class MainActivity : AppCompatActivity() {
                 // 设置按钮样式
                 setButtonStyle(btnStart, false)
                 setButtonStyle(btnStop, true)
-                setButtonStyle(btnPause, true)
-                setButtonStyle(btnResume, false)
                 setButtonStyle(btnPresetBasic, true)
                 setButtonStyle(btnPresetStandard, true)
                 setButtonStyle(btnPresetSmooth, true)
                 setButtonStyle(btnPresetHighFps, true)
                 setButtonStyle(btnPresetUltra, true)
             }
-            com.funny.replaysdk.RecordingStatus.PAUSED -> {
-                // 暂停状态：可以停止、恢复
-                btnStart.isEnabled = false
-                btnStop.isEnabled = true
-                btnPause.isEnabled = false
-                btnResume.isEnabled = true
-                btnPresetBasic.isEnabled = false
-                btnPresetStandard.isEnabled = false
-                btnPresetSmooth.isEnabled = false
-                btnPresetHighFps.isEnabled = false
-                btnPresetUltra.isEnabled = false
-                
-                // 设置按钮样式
-                setButtonStyle(btnStart, false)
-                setButtonStyle(btnStop, true)
-                setButtonStyle(btnPause, false)
-                setButtonStyle(btnResume, true)
-                setButtonStyle(btnPresetBasic, false)
-                setButtonStyle(btnPresetStandard, false)
-                setButtonStyle(btnPresetSmooth, false)
-                setButtonStyle(btnPresetHighFps, false)
-                setButtonStyle(btnPresetUltra, false)
-            }
             com.funny.replaysdk.RecordingStatus.STOPPING -> {
                 // 停止中：所有按钮都禁用
                 btnStart.isEnabled = false
                 btnStop.isEnabled = false
-                btnPause.isEnabled = false
-                btnResume.isEnabled = false
                 btnPresetBasic.isEnabled = false
                 btnPresetStandard.isEnabled = false
                 btnPresetSmooth.isEnabled = false
@@ -547,8 +412,6 @@ class MainActivity : AppCompatActivity() {
                 // 设置按钮样式
                 setButtonStyle(btnStart, false)
                 setButtonStoppingStyle(btnStop) // 停止按钮特殊样式
-                setButtonStyle(btnPause, false)
-                setButtonStyle(btnResume, false)
                 setButtonStyle(btnPresetBasic, false)
                 setButtonStyle(btnPresetStandard, false)
                 setButtonStyle(btnPresetSmooth, false)
@@ -559,8 +422,6 @@ class MainActivity : AppCompatActivity() {
                 // 未知状态，禁用所有按钮
                 btnStart.isEnabled = false
                 btnStop.isEnabled = false
-                btnPause.isEnabled = false
-                btnResume.isEnabled = false
                 btnPresetBasic.isEnabled = false
                 btnPresetStandard.isEnabled = false
                 btnPresetSmooth.isEnabled = false
@@ -569,8 +430,6 @@ class MainActivity : AppCompatActivity() {
                 
                 setButtonStyle(btnStart, false)
                 setButtonStyle(btnStop, false)
-                setButtonStyle(btnPause, false)
-                setButtonStyle(btnResume, false)
                 setButtonStyle(btnPresetBasic, false)
                 setButtonStyle(btnPresetStandard, false)
                 setButtonStyle(btnPresetSmooth, false)
@@ -603,30 +462,6 @@ class MainActivity : AppCompatActivity() {
     
     private var lastVideoPath: String? = null
     
-    private fun convertLastVideo(format: Int) {
-        if (lastVideoPath == null) {
-            Toast.makeText(this, "请先录制一个视频", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        val formatName = when (format) {
-            com.funny.replaysdk.OutputFormat.WEBM -> "WEBM"
-            com.funny.replaysdk.OutputFormat.AVI -> "AVI"
-            com.funny.replaysdk.OutputFormat.MP4 -> "MP4"
-            else -> "未知格式"
-        }
-        Toast.makeText(this, "开始转换格式: $formatName", Toast.LENGTH_SHORT).show()
-        
-        RecordingManager.convertVideoFormat(lastVideoPath!!, format) { success, outputPath ->
-            runOnUiThread {
-                if (success) {
-                    Toast.makeText(this@MainActivity, "转换成功: $outputPath", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(this@MainActivity, "转换失败", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
     
     private fun playTestAudio() {
         try {
@@ -690,15 +525,6 @@ class MainActivity : AppCompatActivity() {
         stopTestAudio()
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // 转发给库
-        com.funny.replaysdk.PermissionManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         // 使用 SDK 的代理授权 Activity（ScreenCapturePermissionActivity）与内部前台服务流程

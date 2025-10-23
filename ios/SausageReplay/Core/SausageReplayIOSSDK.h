@@ -46,11 +46,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (void)releaseResources;
 
-/**
- * 获取内存使用情况
- * @return 内存使用信息
- */
-+ (SRMemoryUsage *)getMemoryUsage;
 
 
 /**
@@ -59,17 +54,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (SRVideoQualityPreset)getCurrentPreset;
 
-/**
- * 检查GIF转换是否支持
- * @return 是否支持
- */
-+ (BOOL)isGifConversionSupported;
-
-/**
- * 获取GIF转换参数
- * @return GIF转换参数
- */
-+ (SRGifConversionParams *)getGifConversionParams;
 
 
 @end

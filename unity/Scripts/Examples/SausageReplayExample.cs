@@ -14,7 +14,7 @@ namespace SausageReplay.Examples
 	public class SausageReplayExample : MonoBehaviour, SausageReplay.IRecordingCallback
 	{
 		[Header("录制配置")]
-		public SausageReplay.DevicePerformanceTier deviceTier = SausageReplay.DevicePerformanceTier.MID_RANGE;
+		public SausageReplay.VideoQualityPreset videoPreset = SausageReplay.VideoQualityPreset.Standard;
 		public SausageReplay.VideoQuality initialQuality = SausageReplay.VideoQuality.MEDIUM;
 		public int maxDurationSeconds = 60;
 		public bool includeAudio = true;
@@ -51,7 +51,7 @@ namespace SausageReplay.Examples
 				}
 
 				Debug.Log("[SausageReplay] 权限已授予，初始化SDK...");
-				bool success = SausageReplay.SausageReplaySDK.Initialize(deviceTier);
+				bool success = SausageReplay.SausageReplaySDK.Initialize(videoPreset);
 				if (!success)
 				{
 					Debug.LogError("[SausageReplay] SDK初始化失败");
@@ -74,7 +74,7 @@ namespace SausageReplay.Examples
 				maxDurationSeconds = maxDurationSeconds,
 				includeAudio = includeAudio,
 				outputFormat = SausageReplay.OutputFormat.MP4,
-				performanceTier = deviceTier
+				performanceTier = (int)videoPreset
 			};
 		}
 
@@ -98,21 +98,6 @@ namespace SausageReplay.Examples
 			SausageReplay.SausageReplaySDK.StopRecording();
 		}
 
-		public void SafePauseRecording()
-		{
-			if (!_isInitialized) { Debug.LogWarning("[SausageReplay] SDK未初始化"); return; }
-			Debug.Log("[SausageReplay] 暂停录制...");
-			if (!SausageReplay.SausageReplaySDK.PauseRecording())
-				Debug.LogError("[SausageReplay] 暂停失败");
-		}
-
-		public void SafeResumeRecording()
-		{
-			if (!_isInitialized) { Debug.LogWarning("[SausageReplay] SDK未初始化"); return; }
-			Debug.Log("[SausageReplay] 恢复录制...");
-			if (!SausageReplay.SausageReplaySDK.ResumeRecording())
-				Debug.LogError("[SausageReplay] 恢复失败");
-		}
 
 		private void CycleQuality()
 		{
