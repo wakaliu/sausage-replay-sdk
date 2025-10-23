@@ -126,42 +126,9 @@ extern "C" int SausageReplaySDK_GetCurrentPreset(void) {
 
 // MARK: - 录制控制
 
-extern "C" bool SausageReplaySDK_StartRecording(const char* configJson) {
+extern "C" bool SausageReplaySDK_StartRecording(void) {
     @try {
-        if (!configJson) {
-            return false;
-        }
-        
-        NSString *jsonString = [NSString stringWithUTF8String:configJson];
-        NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-        NSError *error;
-        NSDictionary *configDict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
-        
-        if (error) {
-            NSLog(@"JSON parsing error: %@", error.localizedDescription);
-            return false;
-        }
-        
-        SRRecordingConfig *config = [[SRRecordingConfig alloc] init];
-        
-        // 解析配置参数
-        if (configDict[@"qualityPreset"]) {
-            config.qualityPreset = (SRVideoQualityPreset)[configDict[@"qualityPreset"] intValue];
-        }
-        if (configDict[@"maxDurationSeconds"]) {
-            config.maxDurationSeconds = [configDict[@"maxDurationSeconds"] intValue];
-        }
-        if (configDict[@"maxFileSizeBytes"]) {
-            config.maxFileSizeBytes = [configDict[@"maxFileSizeBytes"] longLongValue];
-        }
-        if (configDict[@"includeAudio"]) {
-            config.includeAudio = [configDict[@"includeAudio"] boolValue];
-        }
-        if (configDict[@"outputFormat"]) {
-            config.outputFormat = (SROutputFormat)[configDict[@"outputFormat"] intValue];
-        }
-        
-        return [SRRecordingManager startRecordingWithConfig:config callback:g_recordingCallback];
+        return [SRRecordingManager startRecordingWithCallback:g_recordingCallback];
     } @catch (NSException *exception) {
         NSLog(@"SausageReplaySDK_StartRecording error: %@", exception.reason);
         return false;

@@ -18,13 +18,11 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SRRecordingManager : NSObject <RPPreviewViewControllerDelegate>
 
 /**
- * 开始录制
- * @param config 录制配置
+ * 开始录制（使用初始化时设置的视频清晰度参数）
  * @param callback 录制回调
  * @return 是否成功开始
  */
-+ (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config
-                        callback:(nullable id<SRRecordingCallback>)callback;
++ (BOOL)startRecordingWithCallback:(nullable id<SRRecordingCallback>)callback;
 
 /**
  * 停止录制

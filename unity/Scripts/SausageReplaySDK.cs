@@ -69,6 +69,7 @@ namespace SausageReplay
         public class RecordingConfig
         {
             public VideoQuality quality = VideoQuality.MEDIUM;
+            public VideoQualityPreset qualityPreset = VideoQualityPreset.Standard; // 视频清晰度档位
             public int maxDurationSeconds = 1800; // 30分钟 (30 * 60 = 1800秒)
             public long maxFileSizeBytes = 300L * 1024 * 1024; // 300MB
             public bool includeAudio = true;
@@ -561,7 +562,7 @@ namespace SausageReplay
         private static extern void SausageReplaySDK_Release();
         
         [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_StartRecording(string configJson);
+        private static extern bool SausageReplaySDK_StartRecording();
         
         [DllImport("__Internal")]
         private static extern void SausageReplaySDK_StopRecording();
@@ -588,19 +589,8 @@ namespace SausageReplay
         {
             try
             {
-                // iOS需要传递配置JSON，我们创建一个默认配置
-                var config = new RecordingConfig
-                {
-                    qualityPreset = VideoQualityPreset.Standard,
-                    maxDurationSeconds = 60,
-                    maxFileSizeBytes = 50L * 1024 * 1024,
-                    includeAudio = true,
-                    outputFormat = OutputFormat.MP4,
-                    targetFps = 30
-                };
-                
-                string configJson = JsonUtility.ToJson(config);
-                return SausageReplaySDK_StartRecording(configJson);
+                // iOS 现在直接使用初始化时设置的视频清晰度参数
+                return SausageReplaySDK_StartRecording();
             }
             catch (Exception e)
             {

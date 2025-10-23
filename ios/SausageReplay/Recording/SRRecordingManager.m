@@ -56,9 +56,8 @@ static SRRecordingManager *_sharedInstance = nil;
 
 #pragma mark - Public Methods
 
-+ (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config
-                        callback:(nullable id<SRRecordingCallback>)callback {
-    return [[self sharedInstance] startRecordingWithConfig:config callback:callback];
++ (BOOL)startRecordingWithCallback:(nullable id<SRRecordingCallback>)callback {
+    return [[self sharedInstance] startRecordingWithCallback:callback];
 }
 
 + (void)stopRecording:(void(^)(SRRecordingResult *result))callback {
@@ -94,8 +93,7 @@ static SRRecordingManager *_sharedInstance = nil;
 
 #pragma mark - Private Methods
 
-- (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config
-                        callback:(nullable id<SRRecordingCallback>)callback {
+- (BOOL)startRecordingWithCallback:(nullable id<SRRecordingCallback>)callback {
     if (self.currentStatus != SRRecordingStatusIdle) {
         if (callback) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -105,7 +103,8 @@ static SRRecordingManager *_sharedInstance = nil;
         return NO;
     }
     
-    self.currentConfig = config;
+    // 使用默认配置，基于初始化时设置的视频清晰度参数
+    self.currentConfig = [SRRecordingConfig defaultConfig];
     self.recordingCallback = callback;
     self.currentStatus = SRRecordingStatusStarting;
     

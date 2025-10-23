@@ -36,10 +36,9 @@ int SausageReplaySDK_GetCurrentPreset(void);
 
 // MARK: - 录制控制
 
-/// 开始录制
-/// @param configJson 录制配置JSON字符串
+/// 开始录制（使用初始化时设置的视频清晰度参数）
 /// @return 是否开始成功
-bool SausageReplaySDK_StartRecording(const char* configJson);
+bool SausageReplaySDK_StartRecording(void);
 
 /// 停止录制
 void SausageReplaySDK_StopRecording(void);

@@ -122,47 +122,13 @@ int SausageReplaySDK_GetCurrentPreset(void) {
     return (int)[SausageReplayIOSSDK getCurrentPreset];
 }
 
-bool SausageReplaySDK_StartRecording(const char* configJson) {
-    if (!configJson) {
-        return false;
-    }
-    
-    NSString *jsonString = [NSString stringWithUTF8String:configJson];
-    NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-    
-    NSError *error;
-    NSDictionary *configDict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
-    if (error) {
-        NSLog(@"Failed to parse config JSON: %@", error.localizedDescription);
-        return false;
-    }
-    
-    // 创建配置对象
-    SRRecordingConfig *config = [SRRecordingConfig defaultConfig];
-    
-    // 解析配置参数
-    if (configDict[@"qualityPreset"]) {
-        config.qualityPreset = [configDict[@"qualityPreset"] integerValue];
-    }
-    if (configDict[@"maxDurationSeconds"]) {
-        config.maxDurationSeconds = [configDict[@"maxDurationSeconds"] integerValue];
-    }
-    if (configDict[@"maxFileSizeBytes"]) {
-        config.maxFileSizeBytes = [configDict[@"maxFileSizeBytes"] longLongValue];
-    }
-    if (configDict[@"includeAudio"]) {
-        config.includeAudio = [configDict[@"includeAudio"] boolValue];
-    }
-    if (configDict[@"outputFormat"]) {
-        config.outputFormat = [configDict[@"outputFormat"] integerValue];
-    }
-    
+bool SausageReplaySDK_StartRecording(void) {
     // 创建Unity回调
     if (!_unityCallback) {
         _unityCallback = [[SRUnityRecordingCallback alloc] init];
     }
     
-    return [SRRecordingManager startRecordingWithConfig:config callback:_unityCallback];
+    return [SRRecordingManager startRecordingWithCallback:_unityCallback];
 }
 
 void SausageReplaySDK_StopRecording(void) {

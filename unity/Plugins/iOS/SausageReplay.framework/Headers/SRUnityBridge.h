@@ -31,7 +31,7 @@ void SausageReplaySDK_Release(void);
 int SausageReplaySDK_GetCurrentPreset(void);
 
 // 录制控制
-bool SausageReplaySDK_StartRecording(const char* configJson);
+bool SausageReplaySDK_StartRecording(void);
 void SausageReplaySDK_StopRecording(void);
 int SausageReplaySDK_GetRecordingStatus(void);
 bool SausageReplaySDK_AdjustRecordingQuality(int quality);

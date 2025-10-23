@@ -349,17 +349,13 @@
         return;
     }
     
-    // 创建录制配置
-    SRRecordingConfig *config = [SRRecordingConfig defaultConfig];
-    config.qualityPreset = [SausageReplayIOSSDK getCurrentPreset]; // 使用当前视频清晰度档位
-    config.maxDurationSeconds = (int)self.durationSlider.value;
-    config.includeAudio = self.audioSwitch.isOn;
-    config.outputFormat = SROutputFormatMP4;
+    // 使用初始化时设置的视频清晰度参数直接开始录制
+    SRVideoQualityPreset currentPreset = [SausageReplayIOSSDK getCurrentPreset];
     
     [self addLog:[NSString stringWithFormat:@"开始录制 - 清晰度档位: %ld, 时长: %d秒, 音频: %@",
-                  (long)config.qualityPreset, config.maxDurationSeconds, config.includeAudio ? @"是" : @"否"]];
+                  (long)currentPreset, (int)self.durationSlider.value, self.audioSwitch.isOn ? @"是" : @"否"]];
     
-    BOOL success = [SRRecordingManager startRecordingWithConfig:config callback:self];
+    BOOL success = [SRRecordingManager startRecordingWithCallback:self];
     if (success) {
         self.isRecording = YES;
         [self addLog:@"✅ 录制开始"];

@@ -1,5 +1,5 @@
 SausageReplay iOS SDK
 Version: 1.0
 Build: 1
-Build Date: Thu Oct 23 16:27:10 CST 2025
+Build Date: Thu Oct 23 17:52:47 CST 2025
 Xcode Version: Xcode 15.4
