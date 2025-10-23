@@ -333,9 +333,9 @@ namespace SausageReplay
                 return true;
             }
 
-            if (Application.platform != RuntimePlatform.Android)
+            if (Application.platform != RuntimePlatform.Android && Application.platform != RuntimePlatform.IPhonePlayer)
             {
-                Debug.LogError("SausageReplaySDK only supports Android platform");
+                Debug.LogError("SausageReplaySDK only supports Android and iOS platforms");
                 return false;
             }
 
@@ -400,90 +400,78 @@ namespace SausageReplay
             }
         }
 
-        /// <summary>
-        /// 开始录制
-        /// </summary>
-        /// <param name="callback">录制回调</param>
-        /// <returns>是否成功开始</returns>
-        public static bool StartRecording(IRecordingCallback callback = null)
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
+         /// <summary>
+         /// 开始录制
+         /// </summary>
+         /// <param name="callback">录制回调</param>
+         /// <returns>是否成功开始</returns>
+         public static bool StartRecording(IRecordingCallback callback = null)
+         {
+             if (!_isInitialized)
+             {
+                 Debug.LogError("SausageReplaySDK not initialized");
+                 return false;
+             }
 
-            // 防重复开始：录制中或停止中，直接忽略
-            var status = GetRecordingStatus();
-            if (status == RecordingStatus.RECORDING || status == RecordingStatus.STOPPING)
-            {
-                Debug.LogWarning("Recording already in progress, ignore duplicate start");
-                return false;
-            }
+             // 防重复开始：录制中或停止中，直接忽略
+             var status = GetRecordingStatus();
+             if (status == RecordingStatus.RECORDING || status == RecordingStatus.STOPPING)
+             {
+                 Debug.LogWarning("Recording already in progress, ignore duplicate start");
+                 return false;
+             }
 
-            try
-            {
-                _recordingCallback = callback;
-                return SausageReplaySDK_StartRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception starting recording: {e.Message}");
-                return false;
-            }
-        }
+             try
+             {
+                 _recordingCallback = callback;
+                 bool ok = SausageReplaySDK_StartRecording();
+#if UNITY_ANDROID && !UNITY_EDITOR
+                 if (ok)
+                 {
+                     // 开始监听进度（如果原生支持，可忽略失败）
+                     try { SausageReplaySDK_StartProgressMonitoring(); } catch {}
+                 }
+#endif
+                 return ok;
+             }
+             catch (Exception e)
+             {
+                 Debug.LogError($"Exception starting recording: {e.Message}");
+                 return false;
+             }
+         }
 
-        /// <summary>
-        /// 停止录制
-        /// </summary>
-        public static void StopRecording()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return;
-            }
+         /// <summary>
+         /// 停止录制
+         /// </summary>
+         public static void StopRecording()
+         {
+             if (!_isInitialized)
+             {
+                 Debug.LogError("SausageReplaySDK not initialized");
+                 return;
+             }
 
-            // 添加状态检查，避免重复停止
-            var status = GetRecordingStatus();
-            if (status != RecordingStatus.RECORDING && status != RecordingStatus.PAUSED)
-            {
-                Debug.LogWarning($"Cannot stop recording, current status: {status}");
-                return;
-            }
+             // 添加状态检查，避免重复停止
+             var status = GetRecordingStatus();
+             if (status != RecordingStatus.RECORDING && status != RecordingStatus.PAUSED)
+             {
+                 Debug.LogWarning($"Cannot stop recording, current status: {status}");
+                 return;
+             }
 
-            try
-            {
-                SausageReplaySDK_StopRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception stopping recording: {e.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 强制停止录制（绕过状态检查）
-        /// 用于解决 Unity 项目状态不同步的问题
-        /// </summary>
-        public static void ForceStopRecording()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return;
-            }
-
-            Debug.LogWarning("Force stopping recording (bypassing status check)");
-            try
-            {
-                SausageReplaySDK_StopRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception force stopping recording: {e.Message}");
-            }
-        }
+             try
+             {
+                 SausageReplaySDK_StopRecording();
+#if UNITY_ANDROID && !UNITY_EDITOR
+                 try { SausageReplaySDK_StopProgressMonitoring(); } catch {}
+#endif
+             }
+             catch (Exception e)
+             {
+                 Debug.LogError($"Exception stopping recording: {e.Message}");
+             }
+         }
 
         /// <summary>
         /// 暂停录制
@@ -572,7 +560,19 @@ namespace SausageReplay
 
             try
             {
+#if UNITY_IOS && !UNITY_EDITOR
+                // iOS需要IntPtr类型的回调
+                IntPtr callbackPtr = IntPtr.Zero;
+                if (callback != null)
+                {
+                    // 创建一个委托来包装回调
+                    var callbackDelegate = new Action<bool, string>((success, path) => callback(success, path));
+                    callbackPtr = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
+                }
+                SausageReplaySDK_ConvertVideoFormat(inputPath, (int)outputFormat, callbackPtr);
+#else
                 SausageReplaySDK_ConvertVideoFormat(inputPath, (int)outputFormat, callback);
+#endif
             }
             catch (Exception e)
             {
@@ -721,28 +721,6 @@ namespace SausageReplay
 
         #region 高级API
 
-        /// <summary>
-        /// 获取设备档位信息
-        /// </summary>
-        /// <returns>设备档位信息</returns>
-        public static DeviceTierInfo GetDeviceTierInfo()
-        {
-            if (!_isInitialized)
-            {
-                return null;
-            }
-
-            try
-            {
-                string tierJson = SausageReplaySDK_GetDeviceTierInfo();
-                return JsonUtility.FromJson<DeviceTierInfo>(tierJson);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception getting device tier info: {e.Message}");
-                return null;
-            }
-        }
 
         /// <summary>
         /// 检查GIF转换是否支持
@@ -789,34 +767,103 @@ namespace SausageReplay
             }
         }
 
-        /// <summary>
-        /// 重新加载设备档位配置
-        /// </summary>
-        /// <returns>是否成功重新加载</returns>
-        public static bool ReloadDeviceTierConfig()
-        {
-            if (!_isInitialized)
-            {
-                Debug.LogError("SausageReplaySDK not initialized");
-                return false;
-            }
 
+        #endregion
+
+        #region iOS Native 调用
+
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_Initialize(int preset);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_InitializeWithTier(int tier);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_IsPlatformSupported();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetVersion();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_Release();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_StartRecording(string configJson);
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_StopRecording();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_PauseRecording();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_ResumeRecording();
+        
+        [DllImport("__Internal")]
+        private static extern int SausageReplaySDK_GetRecordingStatus();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_AdjustRecordingQuality(int quality);
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetDetailedStatus();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetMemoryUsage();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_RecoverFromError();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_ResetStatus();
+        
+        [DllImport("__Internal")]
+        private static extern int SausageReplaySDK_GetCurrentPreset();
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_IsGifConversionSupported();
+        
+        [DllImport("__Internal")]
+        private static extern string SausageReplaySDK_GetGifConversionParams();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_ConvertVideoFormat(string inputPath, int outputFormat, System.IntPtr callback);
+        
+        [DllImport("__Internal")]
+        private static extern bool SausageReplaySDK_HasMicrophonePermission();
+        
+        [DllImport("__Internal")]
+        private static extern void SausageReplaySDK_RequestMicrophonePermission(System.IntPtr callback);
+
+
+        // iOS 方法实现
+        private static bool SausageReplaySDK_StartRecording()
+        {
             try
             {
-                return SausageReplaySDK_ReloadDeviceTierConfig();
+                // iOS需要传递配置JSON，我们创建一个默认配置
+                var config = new RecordingConfig
+                {
+                    qualityPreset = VideoQualityPreset.Standard,
+                    maxDurationSeconds = 60,
+                    maxFileSizeBytes = 50L * 1024 * 1024,
+                    includeAudio = true,
+                    outputFormat = OutputFormat.MP4,
+                    targetFps = 30
+                };
+                
+                string configJson = JsonUtility.ToJson(config);
+                return SausageReplaySDK_StartRecording(configJson);
             }
             catch (Exception e)
             {
-                Debug.LogError($"Exception reloading config: {e.Message}");
+                Debug.LogError($"Failed to start iOS recording: {e.Message}");
                 return false;
             }
         }
 
-        #endregion
-
-        #region Android JNI 调用
-
-#if UNITY_ANDROID && !UNITY_EDITOR
+#elif UNITY_ANDROID && !UNITY_EDITOR
         private const string SDK_CLASS_NAME = "com.funny.replaysdk.SausageReplayAndroidSDK";
         private const string RECORDING_MANAGER_CLASS_NAME = "com.funny.replaysdk.RecordingManager";
         private const string PERMISSION_MANAGER_CLASS_NAME = "com.funny.replaysdk.PermissionManager";
@@ -910,37 +957,37 @@ namespace SausageReplay
             }
         }
 
-        // Android JNI 方法实现
-        private static bool SausageReplaySDK_Initialize(int tier)
-        {
-            try
-            {
-                Debug.Log($"[SausageReplaySDK] Initializing SDK with tier: {tier}");
-                
-                // 注册 Unity 回调
-                var recordingCallback = new UnityRecordingCallbackImpl();
-                var convertCallback = new UnityConvertCallbackImpl();
-                
-                RecordingManagerClass.CallStatic("setUnityRecordingCallback", recordingCallback);
-                RecordingManagerClass.CallStatic("setUnityConvertCallback", convertCallback);
-                
-                // 直接传递整型参数：SausageReplayAndroidSDK.initialize(Context, Int)
-                bool result = SdkClass.CallStatic<bool>("initialize", CurrentActivity, tier);
-                
-                Debug.Log($"[SausageReplaySDK] Initialize result: {result}");
-                return result;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[SausageReplaySDK] Failed to initialize SDK: {e.Message}");
-                Debug.LogError($"[SausageReplaySDK] Exception type: {e.GetType().Name}");
-                if (e.InnerException != null)
-                {
-                    Debug.LogError($"[SausageReplaySDK] Inner exception: {e.InnerException.Message}");
-                }
-                return false;
-            }
-        }
+         // Android JNI 方法实现
+         private static bool SausageReplaySDK_Initialize(int tier)
+         {
+             try
+             {
+                 Debug.Log($"[SausageReplaySDK] Initializing Android SDK with tier: {tier}");
+                 
+                 // 注册 Unity 回调
+                 var recordingCallback = new UnityRecordingCallbackImpl();
+                 var convertCallback = new UnityConvertCallbackImpl();
+                 
+                 RecordingManagerClass.CallStatic("setUnityRecordingCallback", recordingCallback);
+                 RecordingManagerClass.CallStatic("setUnityConvertCallback", convertCallback);
+                 
+                 // 直接传递整型参数：SausageReplayAndroidSDK.initialize(Context, Int)
+                 bool result = SdkClass.CallStatic<bool>("initialize", CurrentActivity, tier);
+                 
+                 Debug.Log($"[SausageReplaySDK] Android Initialize result: {result}");
+                 return result;
+             }
+             catch (Exception e)
+             {
+                 Debug.LogError($"[SausageReplaySDK] Failed to initialize Android SDK: {e.Message}");
+                 Debug.LogError($"[SausageReplaySDK] Exception type: {e.GetType().Name}");
+                 if (e.InnerException != null)
+                 {
+                     Debug.LogError($"[SausageReplaySDK] Inner exception: {e.InnerException.Message}");
+                 }
+                 return false;
+             }
+         }
 
         private static bool SausageReplaySDK_IsPlatformSupported()
         {
@@ -1136,18 +1183,6 @@ namespace SausageReplay
             }
         }
 
-        private static string SausageReplaySDK_GetDeviceTierInfo()
-        {
-            try
-            {
-                return SdkClass.CallStatic<string>("getDeviceTierInfo");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to get device tier info: {e.Message}");
-                return "{}";
-            }
-        }
 
         private static bool SausageReplaySDK_IsGifConversionSupported()
         {
@@ -1175,18 +1210,6 @@ namespace SausageReplay
             }
         }
 
-        private static bool SausageReplaySDK_ReloadDeviceTierConfig()
-        {
-            try
-            {
-                return SdkClass.CallStatic<bool>("reloadDeviceTierConfig");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to reload device tier config: {e.Message}");
-                return false;
-            }
-        }
 
         // 权限相关方法
         private static bool SausageReplaySDK_HasMicrophonePermission()
@@ -1206,19 +1229,18 @@ namespace SausageReplay
         {
             try
             {
-                PermissionManagerClass.CallStatic("requestMicrophonePermission", CurrentActivity, new AndroidJavaRunnable(() =>
+                // 改为使用 Unity 权限管理器的实现，去除未定义回调依赖
+                SausageReplayPermissionManager.RequestMicrophonePermission((granted, code, msg) =>
                 {
-                    // 权限请求完成的回调处理
-                    UnityMainThreadDispatcher.Enqueue(() =>
+                    if (!granted && !string.IsNullOrEmpty(msg))
                     {
-                        OnMicrophonePermissionResult?.Invoke(true);
-                    });
-                }));
+                        Debug.LogError($"Microphone permission denied: {code} - {msg}");
+                    }
+                });
             }
             catch (Exception e)
             {
                 Debug.LogError($"Failed to request microphone permission: {e.Message}");
-                OnMicrophonePermissionResult?.Invoke(false);
             }
         }
 
@@ -1249,7 +1271,8 @@ namespace SausageReplay
 
 #else
         // Editor 模式下的模拟实现
-        private static bool SausageReplaySDK_Initialize(int tier) => false;
+        private static bool SausageReplaySDK_Initialize(int preset) => false;
+        private static bool SausageReplaySDK_InitializeWithTier(int tier) => false;
         private static bool SausageReplaySDK_IsPlatformSupported() => false;
         private static string SausageReplaySDK_GetVersion() => "1.0.0";
         private static bool SausageReplaySDK_StartRecording() => false;
@@ -1267,10 +1290,9 @@ namespace SausageReplay
         private static bool SausageReplaySDK_RecoverFromError() => false;
         private static void SausageReplaySDK_ResetStatus() { }
         private static void SausageReplaySDK_Release() { }
-        private static string SausageReplaySDK_GetDeviceTierInfo() => "{}";
+        private static int SausageReplaySDK_GetCurrentPreset() => 1; // Standard
         private static bool SausageReplaySDK_IsGifConversionSupported() => false;
         private static string SausageReplaySDK_GetGifConversionParams() => "{}";
-        private static bool SausageReplaySDK_ReloadDeviceTierConfig() => false;
         private static bool SausageReplaySDK_HasMicrophonePermission() => false;
         private static void SausageReplaySDK_RequestMicrophonePermission() { }
         private static bool SausageReplaySDK_StartProgressMonitoring() => false;
