@@ -210,10 +210,6 @@ namespace SausageReplay
         /// </summary>
         public static event Action<VideoQuality> OnRecordingQualityAdjusted;
 
-        /// <summary>
-        /// 转换完成事件
-        /// </summary>
-        public static event Action<bool, string> OnConvertCompleted;
 
         #endregion
 
@@ -275,13 +271,6 @@ namespace SausageReplay
             OnRecordingQualityAdjusted?.Invoke(quality);
         }
 
-        /// <summary>
-        /// 触发转换完成事件
-        /// </summary>
-        internal static void TriggerOnConvertCompleted(bool success, string outputPath)
-        {
-            OnConvertCompleted?.Invoke(success, outputPath);
-        }
 
         #endregion
 
@@ -721,12 +710,10 @@ namespace SausageReplay
              {
                  Debug.Log($"[SausageReplaySDK] Initializing Android SDK with tier: {tier}");
                  
-                 // 注册 Unity 回调
-                 var recordingCallback = new UnityRecordingCallbackImpl();
-                 var convertCallback = new UnityConvertCallbackImpl();
-                 
-                 RecordingManagerClass.CallStatic("setUnityRecordingCallback", recordingCallback);
-                 RecordingManagerClass.CallStatic("setUnityConvertCallback", convertCallback);
+                // 注册 Unity 回调
+                var recordingCallback = new UnityRecordingCallbackImpl();
+                
+                RecordingManagerClass.CallStatic("setUnityRecordingCallback", recordingCallback);
                  
                  // 直接传递整型参数：SausageReplayAndroidSDK.initialize(Context, Int)
                  bool result = SdkClass.CallStatic<bool>("initialize", CurrentActivity, tier);
@@ -1087,20 +1074,6 @@ namespace SausageReplay
         }
     }
 
-    /// <summary>
-    /// Unity 转换回调实现
-    /// </summary>
-    public class UnityConvertCallbackImpl : AndroidJavaProxy
-    {
-        public UnityConvertCallbackImpl() : base("com.funny.replaysdk.UnityConvertCallback") { }
-
-        public void onConvertCompleted(bool success, string outputPath)
-        {
-            UnityMainThreadDispatcher.Enqueue(() => {
-                SausageReplaySDK.TriggerOnConvertCompleted(success, outputPath);
-            });
-        }
-    }
 
     #endregion
 }
