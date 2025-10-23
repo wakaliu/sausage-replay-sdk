@@ -584,20 +584,6 @@ namespace SausageReplay
         
 
 
-        // iOS 方法实现
-        private static bool SausageReplaySDK_StartRecording()
-        {
-            try
-            {
-                // iOS 现在直接使用初始化时设置的视频清晰度参数
-                return SausageReplaySDK_StartRecording();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to start iOS recording: {e.Message}");
-                return false;
-            }
-        }
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
         private const string SDK_CLASS_NAME = "com.funny.replaysdk.SausageReplayAndroidSDK";
