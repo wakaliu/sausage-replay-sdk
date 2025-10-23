@@ -12,8 +12,8 @@
 + (instancetype)defaultConfig {
     SRRecordingConfig *config = [[SRRecordingConfig alloc] init];
     config.qualityPreset = SRVideoQualityPresetStandard; // 默认使用Standard档位
-    config.maxDurationSeconds = 60;
-    config.maxFileSizeBytes = 50L * 1024 * 1024; // 50MB
+    config.maxDurationSeconds = 1800; // 30分钟 (30 * 60 = 1800秒)
+    config.maxFileSizeBytes = 300L * 1024 * 1024; // 300MB
     config.includeAudio = YES;
     config.outputFormat = SROutputFormatMP4;
     config.outputPath = nil;

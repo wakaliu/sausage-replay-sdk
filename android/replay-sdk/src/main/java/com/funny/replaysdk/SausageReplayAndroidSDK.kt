@@ -145,8 +145,8 @@ interface RecordingCallback {
 
 data class RecordingConfig(
     val quality: Int = VideoQuality.MEDIUM,
-    val maxDurationSeconds: Int = 60,
-    val maxFileSizeBytes: Long = 50L * 1024 * 1024,
+    val maxDurationSeconds: Int = 1800, // 30分钟 (30 * 60 = 1800秒)
+    val maxFileSizeBytes: Long = 300L * 1024 * 1024, // 300MB
     val includeAudio: Boolean = true,
     val outputPath: String? = null,
     val targetBitrate: Int? = null,
@@ -227,8 +227,8 @@ object RecordingManager {
             
             return RecordingConfig(
                 quality = videoQuality,
-                maxDurationSeconds = 60,
-                maxFileSizeBytes = 100L * 1024 * 1024, // 默认100MB，可根据需要调整
+                maxDurationSeconds = 1800, // 30分钟 (30 * 60 = 1800秒)
+                maxFileSizeBytes = 300L * 1024 * 1024, // 300MB
                 includeAudio = true,
                 targetBitrate = tierConfig.videoBitrate.default.toInt(),
                 targetFps = tierConfig.targetFps.default,
@@ -240,8 +240,8 @@ object RecordingManager {
             // 降级到默认配置
             return RecordingConfig(
                 quality = VideoQuality.HIGH,
-                maxDurationSeconds = 60,
-                maxFileSizeBytes = 100L * 1024 * 1024,
+                maxDurationSeconds = 1800, // 30分钟 (30 * 60 = 1800秒)
+                maxFileSizeBytes = 300L * 1024 * 1024, // 300MB
                 includeAudio = true,
                 targetBitrate = 8000000,
                 targetFps = 30,

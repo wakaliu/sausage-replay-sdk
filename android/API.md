@@ -27,7 +27,7 @@ val isSupported = SausageReplayAndroidSDK.isPlatformSupported()
 ```kotlin
 val config = RecordingConfig(
     quality = VideoQuality.HIGH,
-    maxDurationSeconds = 60,
+    maxDurationSeconds = 1800, // 30分钟
     includeAudio = true
 )
 
@@ -144,8 +144,8 @@ fun requestScreenCapturePermission(activity: Activity, callback: (granted: Boole
 ```kotlin
 data class RecordingConfig(
     val quality: VideoQuality = VideoQuality.MEDIUM,
-    val maxDurationSeconds: Int = 60,
-    val maxFileSizeBytes: Long = 50L * 1024 * 1024,
+    val maxDurationSeconds: Int = 1800, // 30分钟 (30 * 60 = 1800秒)
+    val maxFileSizeBytes: Long = 300L * 1024 * 1024, // 300MB
     val includeAudio: Boolean = true,
     val outputPath: String? = null,
     val targetBitrate: Int? = null,
@@ -293,7 +293,7 @@ class MainActivity : AppCompatActivity() {
     private fun startRecording() {
         val config = RecordingConfig(
             quality = VideoQuality.HIGH,
-            maxDurationSeconds = 120,
+            maxDurationSeconds = 1800, // 30分钟
             includeAudio = true
         )
         

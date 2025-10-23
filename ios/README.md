@@ -50,7 +50,7 @@ public class ReplayController : MonoBehaviour
         var config = new SausageReplaySDK.RecordingConfig
         {
             quality = SausageReplaySDK.VideoQuality.MEDIUM,
-            maxDurationSeconds = 60,
+            maxDurationSeconds = 1800, // 30分钟
             includeAudio = true,
             outputFormat = SausageReplaySDK.OutputFormat.MP4
         };
@@ -139,8 +139,8 @@ MemoryUsage GetMemoryUsage()
 public class RecordingConfig
 {
     public VideoQuality quality = VideoQuality.MEDIUM;           // 视频质量
-    public int maxDurationSeconds = 60;                          // 最大录制时长
-    public long maxFileSizeBytes = 50L * 1024 * 1024;           // 最大文件大小
+    public int maxDurationSeconds = 1800;                        // 最大录制时长 (30分钟)
+    public long maxFileSizeBytes = 300L * 1024 * 1024;          // 最大文件大小 (300MB)
     public bool includeAudio = true;                             // 是否包含音频
     public OutputFormat outputFormat = OutputFormat.MP4;         // 输出格式
     public string outputPath = null;                             // 输出路径

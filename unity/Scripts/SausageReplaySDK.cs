@@ -69,8 +69,8 @@ namespace SausageReplay
         public class RecordingConfig
         {
             public VideoQuality quality = VideoQuality.MEDIUM;
-            public int maxDurationSeconds = 60;
-            public long maxFileSizeBytes = 50L * 1024 * 1024;
+            public int maxDurationSeconds = 1800; // 30分钟 (30 * 60 = 1800秒)
+            public long maxFileSizeBytes = 300L * 1024 * 1024; // 300MB
             public bool includeAudio = true;
             public OutputFormat outputFormat = OutputFormat.MP4;
             public string outputPath = null;
