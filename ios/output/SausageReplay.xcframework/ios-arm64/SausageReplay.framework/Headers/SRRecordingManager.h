@@ -32,17 +32,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (void)stopRecording:(void(^)(SRRecordingResult *result))callback;
 
-/**
- * 暂停录制
- * @return 是否成功暂停
- */
-+ (BOOL)pauseRecording;
-
-/**
- * 恢复录制
- * @return 是否成功恢复
- */
-+ (BOOL)resumeRecording;
 
 /**
  * 获取当前录制状态
@@ -50,12 +39,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (SRRecordingStatus)status;
 
-/**
- * 调整录制质量
- * @param quality 目标质量
- * @return 是否成功调整
- */
-+ (BOOL)adjustRecordingQuality:(SRVideoQuality)quality;
 
 /**
  * 获取详细状态
@@ -64,25 +47,17 @@ NS_ASSUME_NONNULL_BEGIN
 + (SRDetailedStatus *)getDetailedStatus;
 
 /**
- * 错误恢复
- * @return 是否成功恢复
+ * 调整录制质量
+ * @param quality 目标质量
+ * @return 是否调整成功
  */
-+ (BOOL)recoverFromError;
++ (BOOL)adjustRecordingQuality:(SRVideoQuality)quality;
 
 /**
  * 重置状态
  */
 + (void)resetStatus;
 
-/**
- * 转换视频格式
- * @param inputPath 输入文件路径
- * @param outputFormat 目标格式
- * @param callback 转换结果回调
- */
-+ (void)convertVideoFormat:(NSString *)inputPath
-              outputFormat:(SROutputFormat)outputFormat
-                  callback:(void(^)(BOOL success, NSString * _Nullable outputPath))callback;
 
 @end
 

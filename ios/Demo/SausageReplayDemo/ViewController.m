@@ -8,7 +8,6 @@
 #import "ViewController.h"
 #import <SausageReplay/SausageReplayIOSSDK.h>
 #import <SausageReplay/SRRecordingManager.h>
-#import <SausageReplay/SRPermissionManager.h>
 #import <SausageReplay/SRModels.h>
 #import <Photos/Photos.h>
 
@@ -17,8 +16,6 @@
 // 状态变量
 @property (nonatomic, assign) BOOL isInitialized;
 @property (nonatomic, assign) BOOL isRecording;
-@property (nonatomic, assign) BOOL isPaused;
-@property (nonatomic, strong) NSTimer *memoryTimer;
 @property (nonatomic, strong) NSString *lastRecordedVideoPath;
 
 @end
@@ -30,14 +27,12 @@
     
     [self setupUIProgrammatically];
     [self updateUI];
-    [self startMemoryMonitoring];
 }
 
 - (void)setupUIProgrammatically {
     // 设置初始状态
     self.isInitialized = NO;
     self.isRecording = NO;
-    self.isPaused = NO;
     
     // 创建滚动视图
     UIScrollView *scrollView = [[UIScrollView alloc] init];
@@ -75,17 +70,6 @@
     self.presetLabel.font = [UIFont systemFontOfSize:14];
     [statusStackView addArrangedSubview:self.presetLabel];
     
-    self.permissionLabel = [[UILabel alloc] init];
-    self.permissionLabel.text = @"麦克风权限: 未授权";
-    self.permissionLabel.textAlignment = NSTextAlignmentCenter;
-    self.permissionLabel.font = [UIFont systemFontOfSize:14];
-    [statusStackView addArrangedSubview:self.permissionLabel];
-    
-    self.memoryLabel = [[UILabel alloc] init];
-    self.memoryLabel.text = @"内存: 未初始化";
-    self.memoryLabel.textAlignment = NSTextAlignmentCenter;
-    self.memoryLabel.font = [UIFont systemFontOfSize:14];
-    [statusStackView addArrangedSubview:self.memoryLabel];
     
     [mainStackView addArrangedSubview:statusStackView];
     
@@ -127,46 +111,6 @@
     
     [controlStackView addArrangedSubview:recordingStackView];
     
-    // 暂停/恢复按钮
-    UIStackView *pauseResumeStackView = [[UIStackView alloc] init];
-    pauseResumeStackView.axis = UILayoutConstraintAxisHorizontal;
-    pauseResumeStackView.distribution = UIStackViewDistributionFillEqually;
-    pauseResumeStackView.spacing = 8;
-    
-    self.pauseButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [self.pauseButton setTitle:@"暂停" forState:UIControlStateNormal];
-    self.pauseButton.backgroundColor = [UIColor systemOrangeColor];
-    [self.pauseButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.pauseButton.layer.cornerRadius = 8;
-    [self.pauseButton addTarget:self action:@selector(pauseButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
-    [pauseResumeStackView addArrangedSubview:self.pauseButton];
-    
-    self.resumeButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [self.resumeButton setTitle:@"恢复" forState:UIControlStateNormal];
-    self.resumeButton.backgroundColor = [UIColor systemBlueColor];
-    [self.resumeButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.resumeButton.layer.cornerRadius = 8;
-    [self.resumeButton addTarget:self action:@selector(resumeButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
-    [pauseResumeStackView addArrangedSubview:self.resumeButton];
-    
-    [controlStackView addArrangedSubview:pauseResumeStackView];
-    
-    // 其他控制按钮
-    UIStackView *otherStackView = [[UIStackView alloc] init];
-    otherStackView.axis = UILayoutConstraintAxisHorizontal;
-    otherStackView.distribution = UIStackViewDistributionFillEqually;
-    otherStackView.spacing = 8;
-    
-    self.permissionButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [self.permissionButton setTitle:@"请求权限" forState:UIControlStateNormal];
-    self.permissionButton.backgroundColor = [UIColor systemBlueColor];
-    [self.permissionButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.permissionButton.layer.cornerRadius = 8;
-    [self.permissionButton addTarget:self action:@selector(permissionButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
-    [otherStackView addArrangedSubview:self.permissionButton];
-    
-    
-    [controlStackView addArrangedSubview:otherStackView];
     
     // 清空日志按钮
     self.clearLogButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -295,9 +239,6 @@
         [self.sdkInitButton.heightAnchor constraintEqualToConstant:44],
         [self.startButton.heightAnchor constraintEqualToConstant:44],
         [self.stopButton.heightAnchor constraintEqualToConstant:44],
-        [self.pauseButton.heightAnchor constraintEqualToConstant:44],
-        [self.resumeButton.heightAnchor constraintEqualToConstant:44],
-        [self.permissionButton.heightAnchor constraintEqualToConstant:44],
         [self.clearLogButton.heightAnchor constraintEqualToConstant:44],
         [self.saveToAlbumButton.heightAnchor constraintEqualToConstant:44],
         
@@ -319,14 +260,11 @@
     self.sdkInitButton.enabled = !self.isInitialized;
     self.startButton.enabled = self.isInitialized && !self.isRecording;
     self.stopButton.enabled = self.isRecording;
-    self.pauseButton.enabled = self.isRecording && !self.isPaused;
-    self.resumeButton.enabled = self.isRecording && self.isPaused;
-    self.permissionButton.enabled = self.isInitialized;
     
     // 更新状态标签
     if (self.isRecording) {
-        self.statusLabel.text = self.isPaused ? @"录制中 (已暂停)" : @"录制中";
-        self.statusLabel.textColor = self.isPaused ? [UIColor orangeColor] : [UIColor redColor];
+        self.statusLabel.text = @"录制中";
+        self.statusLabel.textColor = [UIColor redColor];
     } else {
         self.statusLabel.text = self.isInitialized ? @"就绪" : @"未初始化";
         self.statusLabel.textColor = self.isInitialized ? [UIColor greenColor] : [UIColor grayColor];
@@ -344,10 +282,6 @@
         self.presetLabel.text = @"清晰度档位: 未初始化";
     }
     
-    // 更新权限状态
-    BOOL hasPermission = [SRPermissionManager hasMicrophonePermission];
-    self.permissionLabel.text = [NSString stringWithFormat:@"麦克风权限: %@", hasPermission ? @"已授权" : @"未授权"];
-    self.permissionLabel.textColor = hasPermission ? [UIColor greenColor] : [UIColor redColor];
 }
 
 - (void)updateDurationLabel {
@@ -355,25 +289,6 @@
     self.durationLabel.text = [NSString stringWithFormat:@"录制时长: %d秒", duration];
 }
 
-- (void)startMemoryMonitoring {
-    self.memoryTimer = [NSTimer scheduledTimerWithTimeInterval:1.0
-                                                        target:self
-                                                      selector:@selector(updateMemoryInfo)
-                                                      userInfo:nil
-                                                       repeats:YES];
-}
-
-- (void)updateMemoryInfo {
-    if (self.isInitialized) {
-        SRMemoryUsage *memoryUsage = [SausageReplayIOSSDK getMemoryUsage];
-        self.memoryLabel.text = [NSString stringWithFormat:@"内存: %.1fMB / %.1fMB (%.1f%%)",
-                                memoryUsage.usedMemory / 1024.0 / 1024.0,
-                                memoryUsage.maxMemory / 1024.0 / 1024.0,
-                                (long)memoryUsage.usagePercentage];
-    } else {
-        self.memoryLabel.text = @"内存: 未初始化";
-    }
-}
 
 - (void)addLog:(NSString *)message {
     NSString *timestamp = [NSDateFormatter localizedStringFromDate:[NSDate date]
@@ -416,9 +331,8 @@
         [self addLog:[NSString stringWithFormat:@"当前视频清晰度档位: %@", presetName]];
         [self addLog:[NSString stringWithFormat:@"档位值: %ld", (long)currentPreset]];
         
-        // 检查GIF转换支持
-        BOOL gifSupported = [SausageReplayIOSSDK isGifConversionSupported];
-        [self addLog:[NSString stringWithFormat:@"GIF转换支持: %@", gifSupported ? @"是" : @"否"]];
+        // GIF转换支持已简化，不再提供此功能
+        [self addLog:@"GIF转换支持: 已简化，暂不支持"];
         
         // 更新清晰度档位信息显示
         self.presetLabel.text = [NSString stringWithFormat:@"清晰度档位: %@", presetName];
@@ -462,7 +376,6 @@
     [SRRecordingManager stopRecording:^(SRRecordingResult *result) {
         dispatch_async(dispatch_get_main_queue(), ^{
             self.isRecording = NO;
-            self.isPaused = NO;
             
             if (result.isSuccess) {
                 [self addLog:@"✅ 录制停止成功"];
@@ -478,45 +391,6 @@
     }];
 }
 
-- (IBAction)pauseButtonTapped:(UIButton *)sender {
-    BOOL success = [SRRecordingManager pauseRecording];
-    if (success) {
-        self.isPaused = YES;
-        [self addLog:@"⏸️ 录制暂停"];
-    } else {
-        [self addLog:@"❌ 暂停失败"];
-    }
-    
-    [self updateUI];
-}
-
-- (IBAction)resumeButtonTapped:(UIButton *)sender {
-    BOOL success = [SRRecordingManager resumeRecording];
-    if (success) {
-        self.isPaused = NO;
-        [self addLog:@"▶️ 录制恢复"];
-    } else {
-        [self addLog:@"❌ 恢复失败"];
-    }
-    
-    [self updateUI];
-}
-
-- (IBAction)permissionButtonTapped:(UIButton *)sender {
-    [self addLog:@"请求麦克风权限..."];
-    
-    [SRPermissionManager requestMicrophonePermission:^(SRPermissionResult *result) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (result.isGranted) {
-                [self addLog:@"✅ 麦克风权限授权成功"];
-            } else {
-                [self addLog:[NSString stringWithFormat:@"❌ 麦克风权限授权失败: %@", result.errorMessage]];
-            }
-            
-            [self updateUI];
-        });
-    }];
-}
 
 
 - (IBAction)durationSliderChanged:(UISlider *)sender {
@@ -645,8 +519,7 @@
 #pragma mark - Memory Management
 
 - (void)dealloc {
-    [self.memoryTimer invalidate];
-    self.memoryTimer = nil;
+    // 简化版本不需要内存监控定时器
 }
 
 @end

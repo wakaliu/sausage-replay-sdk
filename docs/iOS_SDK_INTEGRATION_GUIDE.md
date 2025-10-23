@@ -9,7 +9,6 @@ Sausage Replay iOS SDK 是一个专为 Unity 游戏引擎设计的屏幕录制 S
 - **iOS 版本**: 12.0 或更高
 - **Unity 版本**: 2020.3 LTS 或更高
 - **Xcode 版本**: 12.0 或更高
-- **开发语言**: Objective-C
 
 ## 快速开始
 
@@ -106,19 +105,6 @@ bool success = SausageReplaySDK.Initialize(VideoQualityPreset.HighFps);
 
 停止屏幕录制。
 
-#### `PauseRecording()`
-
-暂停录制。
-
-**返回值:**
-- `bool`: 是否暂停成功
-
-#### `ResumeRecording()`
-
-恢复录制。
-
-**返回值:**
-- `bool`: 是否恢复成功
 
 #### `GetRecordingStatus()`
 
@@ -129,7 +115,6 @@ bool success = SausageReplaySDK.Initialize(VideoQualityPreset.HighFps);
   - `RecordingStatus.Idle`: 空闲
   - `RecordingStatus.Starting`: 开始中
   - `RecordingStatus.Recording`: 录制中
-  - `RecordingStatus.Paused`: 已暂停
   - `RecordingStatus.Stopping`: 停止中
 
 ### 状态监控
@@ -142,72 +127,10 @@ bool success = SausageReplaySDK.Initialize(VideoQualityPreset.HighFps);
 - `DetailedStatus`: 详细状态对象，包含：
   - `status`: 录制状态
   - `isRecording`: 是否正在录制
-  - `isPaused`: 是否已暂停
   - `duration`: 录制时长（毫秒）
   - `fileSize`: 文件大小（字节）
   - `errorCode`: 错误码
   - `errorMessage`: 错误信息
-
-#### `GetMemoryUsage()`
-
-获取内存使用情况。
-
-**返回值:**
-- `MemoryUsage`: 内存使用对象，包含：
-  - `usedMemory`: 已使用内存
-  - `maxMemory`: 最大内存
-  - `usagePercentage`: 使用百分比
-
-### 权限管理
-
-#### `HasMicrophonePermission()`
-
-检查是否有麦克风权限。
-
-**返回值:**
-- `bool`: 是否有权限
-
-#### `RequestMicrophonePermission()`
-
-请求麦克风权限。
-
-### 格式转换
-
-#### `IsGifConversionSupported()`
-
-检查是否支持 GIF 转换。
-
-**返回值:**
-- `bool`: 是否支持
-
-#### `GetGifConversionParams()`
-
-获取 GIF 转换参数。
-
-**返回值:**
-- `GifConversionParams`: GIF 转换参数对象
-
-#### `ConvertVideoFormat(string inputPath, OutputFormat outputFormat, Action<bool, string> callback)`
-
-转换视频格式。
-
-**参数:**
-- `inputPath`: 输入文件路径
-- `outputFormat`: 输出格式
-- `callback`: 转换完成回调
-
-### 错误处理
-
-#### `RecoverFromError()`
-
-从错误中恢复。
-
-**返回值:**
-- `bool`: 是否恢复成功
-
-#### `ResetStatus()`
-
-重置 SDK 状态。
 
 ## 回调事件
 
@@ -250,11 +173,10 @@ public class ReplayManager : MonoBehaviour
 var config = new RecordingConfig
 {
     qualityPreset = VideoQualityPreset.Standard,
-    maxDurationSeconds = 60,
-    maxFileSizeBytes = 50L * 1024 * 1024, // 50MB
+    maxDurationSeconds = 1800, // 30分钟
+    maxFileSizeBytes = 300L * 1024 * 1024, // 300MB
     includeAudio = true,
-    outputFormat = OutputFormat.MP4,
-    targetFps = 30
+    outputFormat = OutputFormat.MP4
 };
 ```
 
@@ -270,13 +192,11 @@ var config = new RecordingConfig
 
 2. **录制限制**: 
    - 只能在应用前台录制
-   - 录制过程中无法动态调整质量
    - 录制文件保存在应用沙盒中
 
 3. **性能建议**:
    - 根据设备性能选择合适的清晰度档位
    - 避免在录制过程中进行大量计算
-   - 定期检查内存使用情况
 
 4. **错误处理**: 始终检查 API 返回值，并实现适当的错误处理逻辑。
 

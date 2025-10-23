@@ -16,9 +16,6 @@
     config.maxFileSizeBytes = 300L * 1024 * 1024; // 300MB
     config.includeAudio = YES;
     config.outputFormat = SROutputFormatMP4;
-    config.outputPath = nil;
-    config.targetBitrate = nil;
-    config.targetFps = 30;
     return config;
 }
 
@@ -53,42 +50,6 @@
 
 @end
 
-@implementation SRMemoryUsage
-
-@end
-
 @implementation SRDetailedStatus
-
-@end
-
-@implementation SRDeviceTierInfo
-
-@end
-
-@implementation SRGifConversionParams
-
-@end
-
-@implementation SRPerformanceMetrics
-
-@end
-
-@implementation SRPermissionResult
-
-+ (instancetype)granted {
-    SRPermissionResult *result = [[SRPermissionResult alloc] init];
-    result.isGranted = YES;
-    result.errorCode = 0;
-    result.errorMessage = nil;
-    return result;
-}
-
-+ (instancetype)deniedWithErrorCode:(NSInteger)errorCode errorMessage:(nullable NSString *)errorMessage {
-    SRPermissionResult *result = [[SRPermissionResult alloc] init];
-    result.isGranted = NO;
-    result.errorCode = errorCode;
-    result.errorMessage = errorMessage;
-    return result;
-}
 
 @end

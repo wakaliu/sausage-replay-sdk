@@ -15,7 +15,7 @@
     return status == AVAudioSessionRecordPermissionGranted;
 }
 
-+ (void)requestMicrophonePermission:(void(^)(SRPermissionResult *result))callback {
++ (void)requestMicrophonePermission:(void(^)(BOOL granted, NSInteger errorCode, NSString *errorMessage))callback {
     if (!callback) {
         return;
     }
@@ -26,7 +26,7 @@
     if (currentStatus == AVAudioSessionRecordPermissionGranted) {
         // 已有权限
         dispatch_async(dispatch_get_main_queue(), ^{
-            callback([SRPermissionResult granted]);
+            callback(YES, 0, nil);
         });
         return;
     }
@@ -34,7 +34,7 @@
     if (currentStatus == AVAudioSessionRecordPermissionDenied) {
         // 权限被拒绝
         dispatch_async(dispatch_get_main_queue(), ^{
-            callback([SRPermissionResult deniedWithErrorCode:1002 errorMessage:@"Permission permanently denied"]);
+            callback(NO, 1002, @"Permission permanently denied");
         });
         return;
     }
@@ -43,9 +43,9 @@
     [[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (granted) {
-                callback([SRPermissionResult granted]);
+                callback(YES, 0, nil);
             } else {
-                callback([SRPermissionResult deniedWithErrorCode:1001 errorMessage:@"Permission denied"]);
+                callback(NO, 1001, @"Permission denied");
             }
         });
     }];

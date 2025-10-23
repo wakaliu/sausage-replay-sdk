@@ -46,15 +46,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (void)releaseResources;
 
-
-
 /**
  * 获取当前视频清晰度档位
  * @return 当前视频清晰度档位
  */
 + (SRVideoQualityPreset)getCurrentPreset;
-
-
 
 @end
 

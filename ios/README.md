@@ -1,23 +1,19 @@
 # SausageReplay iOS SDK
 
-SausageReplay iOS SDK 是一个专为iOS平台设计的屏幕录制SDK，支持高质量屏幕录制、音频录制、多种输出格式等功能。
+SausageReplay iOS SDK 是一个专为iOS平台设计的屏幕录制SDK，支持高质量屏幕录制、音频录制等功能。
 
 ## 特性
 
-- 🎥 **高质量屏幕录制**：支持1080p、720p、480p录制
+- 🎥 **高质量屏幕录制**：支持多种清晰度档位录制
 - 🎵 **音频录制**：支持麦克风音频录制
-- ⏸️ **暂停/恢复**：录制过程中可暂停和恢复
-- 🔄 **实时质量调整**：根据设备性能动态调整录制参数
-- 📱 **设备档位适配**：自动适配不同性能档位的设备
-- 🎬 **多格式支持**：支持MP4、GIF格式输出
-- 🛡️ **错误恢复**：内置错误检测和恢复机制
+- 📱 **清晰度档位**：支持Basic、Standard、Smooth、HighFps、Ultra档位
+- 🎬 **MP4格式输出**：标准MP4格式录制
 
 ## 系统要求
 
 - **最低版本**：iOS 12.0+
 - **架构支持**：arm64 (真机), arm64 + x86_64 (模拟器)
-- **开发语言**：Objective-C
-- **集成平台**：Unity 2022.3 LTS 或更高版本
+- **集成平台**：Unity 2020.3 LTS 或更高版本
 
 ## 快速开始
 
@@ -36,8 +32,8 @@ public class ReplayController : MonoBehaviour
 {
     void Start()
     {
-        // 初始化SDK
-        bool initialized = SausageReplaySDK.Initialize(SausageReplaySDK.DevicePerformanceTier.MID_RANGE);
+        // 初始化SDK，使用Standard档位
+        bool initialized = SausageReplaySDK.Initialize(VideoQualityPreset.Standard);
         if (initialized)
         {
             Debug.Log("SDK初始化成功");
@@ -46,17 +42,8 @@ public class ReplayController : MonoBehaviour
     
     public void StartRecording()
     {
-        // 创建录制配置
-        var config = new SausageReplaySDK.RecordingConfig
-        {
-            quality = SausageReplaySDK.VideoQuality.MEDIUM,
-            maxDurationSeconds = 1800, // 30分钟
-            includeAudio = true,
-            outputFormat = SausageReplaySDK.OutputFormat.MP4
-        };
-        
         // 开始录制
-        bool started = SausageReplaySDK.StartRecording(config, this);
+        bool started = SausageReplaySDK.StartRecording();
         if (started)
         {
             Debug.Log("录制开始");
@@ -99,16 +86,15 @@ public class ReplayController : MonoBehaviour, SausageReplaySDK.IRecordingCallba
 
 #### 初始化
 ```csharp
-bool Initialize(DevicePerformanceTier tier = DevicePerformanceTier.MID_RANGE)
+bool Initialize(VideoQualityPreset preset)
 ```
 
 #### 录制控制
 ```csharp
-bool StartRecording(RecordingConfig config, IRecordingCallback callback = null)
+bool StartRecording()
 void StopRecording()
-bool PauseRecording()
-bool ResumeRecording()
 RecordingStatus GetRecordingStatus()
+bool AdjustRecordingQuality(VideoQuality quality)
 ```
 
 #### 状态查询
@@ -116,37 +102,26 @@ RecordingStatus GetRecordingStatus()
 bool IsPlatformSupported()
 string GetVersion()
 DetailedStatus GetDetailedStatus()
-MemoryUsage GetMemoryUsage()
 ```
 
-### 设备性能档位
+### 视频清晰度档位
 
-- `MID_RANGE`：中端设备（默认）
-  - 最大分辨率：1280x720
-  - 目标帧率：30fps
-  - 视频比特率：3-6 Mbps
-  - 支持GIF转换
-
-- `HIGH_END`：高端设备
-  - 最大分辨率：1920x1080
-  - 目标帧率：30fps
-  - 视频比特率：6-10 Mbps
-  - 支持GIF转换
+- `Basic` (0)：720p30
+- `Standard` (1)：1080p30 (默认)
+- `Smooth` (2)：720p60
+- `HighFps` (3)：1080p60
+- `Ultra` (4)：1440p30/60
 
 ### 录制配置
 
 ```csharp
 public class RecordingConfig
 {
-    public VideoQuality quality = VideoQuality.MEDIUM;           // 视频质量
-    public int maxDurationSeconds = 1800;                        // 最大录制时长 (30分钟)
-    public long maxFileSizeBytes = 300L * 1024 * 1024;          // 最大文件大小 (300MB)
-    public bool includeAudio = true;                             // 是否包含音频
-    public OutputFormat outputFormat = OutputFormat.MP4;         // 输出格式
-    public string outputPath = null;                             // 输出路径
-    public int? targetBitrate = null;                            // 目标比特率
-    public int targetFps = 30;                                   // 目标帧率
-    public DevicePerformanceTier performanceTier = DevicePerformanceTier.MID_RANGE;
+    public VideoQualityPreset qualityPreset = VideoQualityPreset.Standard;  // 视频清晰度档位
+    public int maxDurationSeconds = 1800;                                   // 最大录制时长 (30分钟)
+    public long maxFileSizeBytes = 300L * 1024 * 1024;                     // 最大文件大小 (300MB)
+    public bool includeAudio = true;                                        // 是否包含音频
+    public OutputFormat outputFormat = OutputFormat.MP4;                    // 输出格式
 }
 ```
 
@@ -168,18 +143,6 @@ SDK使用统一的错误码系统：
 - **2000-2999**：录制相关错误
 - **3000-3999**：文件相关错误
 - **4000-4999**：系统相关错误
-
-## 性能优化
-
-### 内存管理
-- 录制期间内存增长 < 100MB
-- 自动清理临时文件
-- 支持内存使用情况监控
-
-### CPU优化
-- 录制期间CPU占用 < 15%
-- 根据设备性能自动调整参数
-- 支持动态质量调整
 
 ## 构建和部署
 
@@ -225,8 +188,8 @@ cd ios
 - 初始版本发布
 - 支持基础屏幕录制功能
 - 支持音频录制
-- 支持MP4和GIF格式输出
-- 支持设备性能档位适配
+- 支持MP4格式输出
+- 支持视频清晰度档位
 
 ## 许可证
 

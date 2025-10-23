@@ -46,6 +46,12 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (SRDetailedStatus *)getDetailedStatus;
 
+/**
+ * 调整录制质量
+ * @param quality 目标质量
+ * @return 是否调整成功
+ */
++ (BOOL)adjustRecordingQuality:(SRVideoQuality)quality;
 
 /**
  * 重置状态

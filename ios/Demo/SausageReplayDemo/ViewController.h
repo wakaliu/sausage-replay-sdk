@@ -13,16 +13,11 @@
 @property (strong, nonatomic) UILabel *statusLabel;
 @property (strong, nonatomic) UILabel *versionLabel;
 @property (strong, nonatomic) UILabel *presetLabel;
-@property (strong, nonatomic) UILabel *permissionLabel;
-@property (strong, nonatomic) UILabel *memoryLabel;
 
 // 控制按钮
 @property (strong, nonatomic) UIButton *sdkInitButton;
 @property (strong, nonatomic) UIButton *startButton;
 @property (strong, nonatomic) UIButton *stopButton;
-@property (strong, nonatomic) UIButton *pauseButton;
-@property (strong, nonatomic) UIButton *resumeButton;
-@property (strong, nonatomic) UIButton *permissionButton;
 @property (strong, nonatomic) UIButton *clearLogButton;
 @property (strong, nonatomic) UIButton *saveToAlbumButton;
 

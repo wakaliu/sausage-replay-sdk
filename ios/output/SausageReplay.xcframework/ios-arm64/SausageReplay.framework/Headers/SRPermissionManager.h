@@ -24,9 +24,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * 请求麦克风权限
- * @param callback 权限结果回调
+ * @param callback 权限结果回调 (BOOL granted, NSInteger errorCode, NSString *errorMessage)
  */
-+ (void)requestMicrophonePermission:(void(^)(SRPermissionResult *result))callback;
++ (void)requestMicrophonePermission:(void(^)(BOOL granted, NSInteger errorCode, NSString *errorMessage))callback;
 
 /**
  * 检查是否有屏幕录制权限

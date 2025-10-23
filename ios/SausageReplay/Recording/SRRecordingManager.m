@@ -65,13 +65,6 @@ static SRRecordingManager *_sharedInstance = nil;
     [[self sharedInstance] stopRecording:callback];
 }
 
-+ (BOOL)pauseRecording {
-    return [[self sharedInstance] pauseRecording];
-}
-
-+ (BOOL)resumeRecording {
-    return [[self sharedInstance] resumeRecording];
-}
 
 + (SRRecordingStatus)status {
     return [[self sharedInstance] currentStatus];
@@ -161,7 +154,7 @@ static SRRecordingManager *_sharedInstance = nil;
 - (void)setupVideoInputWithConfig:(SRRecordingConfig *)config {
     // 根据视频清晰度档位计算视频参数
     CGSize videoSize = [self calculateVideoSizeForPreset:config.qualityPreset];
-    NSInteger bitrate = config.targetBitrate ? [config.targetBitrate integerValue] : [self calculateBitrateForPreset:config.qualityPreset];
+    NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
     
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: AVVideoCodecTypeH264,
@@ -170,7 +163,7 @@ static SRRecordingManager *_sharedInstance = nil;
         AVVideoCompressionPropertiesKey: @{
             AVVideoAverageBitRateKey: @(bitrate),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264MainAutoLevel,
-            AVVideoMaxKeyFrameIntervalKey: @(config.targetFps * 2) // GOP = 2秒
+            AVVideoMaxKeyFrameIntervalKey: @(30 * 2) // GOP = 2秒，默认30fps
         }
     };
     
@@ -276,7 +269,7 @@ static SRRecordingManager *_sharedInstance = nil;
 - (void)stopRecording:(void(^)(SRRecordingResult *result))callback {
     NSLog(@"🔍 stopRecording called, current status: %ld", (long)self.currentStatus);
     
-    if (self.currentStatus != SRRecordingStatusRecording && self.currentStatus != SRRecordingStatusPaused) {
+    if (self.currentStatus != SRRecordingStatusRecording) {
         NSString *errorMsg = [NSString stringWithFormat:@"Recording not started (status: %ld)", (long)self.currentStatus];
         SRRecordingResult *result = [SRRecordingResult failureWithErrorCode:2001 errorMessage:errorMsg];
         if (callback) {
@@ -399,39 +392,6 @@ static SRRecordingManager *_sharedInstance = nil;
     }];
 }
 
-- (BOOL)pauseRecording {
-    if (self.currentStatus != SRRecordingStatusRecording) {
-        return NO;
-    }
-    
-    self.isPaused = YES;
-    self.currentStatus = SRRecordingStatusPaused;
-    
-    if (self.recordingCallback) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.recordingCallback onRecordingPaused];
-        });
-    }
-    
-    return YES;
-}
-
-- (BOOL)resumeRecording {
-    if (self.currentStatus != SRRecordingStatusPaused) {
-        return NO;
-    }
-    
-    self.isPaused = NO;
-    self.currentStatus = SRRecordingStatusRecording;
-    
-    if (self.recordingCallback) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.recordingCallback onRecordingResumed];
-        });
-    }
-    
-    return YES;
-}
 
 - (BOOL)adjustRecordingQuality:(SRVideoQuality)quality {
     // iOS录制过程中无法动态调整质量，这里只是更新配置
@@ -451,11 +411,6 @@ static SRRecordingManager *_sharedInstance = nil;
         }
         self.currentConfig.qualityPreset = preset;
         
-        if (self.recordingCallback) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.recordingCallback onRecordingQualityAdjusted:quality];
-            });
-        }
         
         return YES;
     }
@@ -466,41 +421,21 @@ static SRRecordingManager *_sharedInstance = nil;
 - (SRDetailedStatus *)getDetailedStatus {
     SRDetailedStatus *status = [[SRDetailedStatus alloc] init];
     status.status = self.currentStatus;
-    status.config = self.currentConfig;
-    status.hasProjection = YES; // ReplayKit always has projection
-    status.hasRecorder = (self.screenRecorder != nil);
-    status.hasDisplay = YES;
-    status.outputFile = self.outputURL.path;
-    
-    if (self.outputURL) {
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        NSDictionary *attributes = [fileManager attributesOfItemAtPath:self.outputURL.path error:nil];
-        status.outputFileSize = [attributes[NSFileSize] longLongValue];
+    status.isRecording = (self.currentStatus == SRRecordingStatusRecording);
+    status.isPaused = NO; // 简化版本不支持暂停
+    // 计算录制时长
+    if (self.currentStatus == SRRecordingStatusRecording && self.startTime > 0) {
+        status.duration = [[NSDate date] timeIntervalSince1970] - self.startTime;
+    } else {
+        status.duration = 0;
     }
-    
-    // 获取内存使用情况
-    status.memoryUsage = [self getMemoryUsage];
+    status.fileSize = 0; // 简化版本不提供文件大小
+    status.errorCode = 0;
+    status.errorMessage = nil;
     
     return status;
 }
 
-- (SRMemoryUsage *)getMemoryUsage {
-    SRMemoryUsage *memoryUsage = [[SRMemoryUsage alloc] init];
-    
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-    kern_return_t kerr = task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size);
-    
-    if (kerr == KERN_SUCCESS) {
-        memoryUsage.usedMemory = info.resident_size;
-        memoryUsage.totalMemory = info.virtual_size;
-        memoryUsage.freeMemory = info.virtual_size - info.resident_size;
-        memoryUsage.maxMemory = info.virtual_size;
-        memoryUsage.usagePercentage = (NSInteger)((double)info.resident_size / info.virtual_size * 100);
-    }
-    
-    return memoryUsage;
-}
 
 - (BOOL)recoverFromError {
     [self cleanup];
