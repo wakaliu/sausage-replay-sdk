@@ -70,138 +70,97 @@ static UnityRecordingCallback *g_recordingCallback = nil;
 // MARK: - 初始化与基础功能
 
 extern "C" bool SausageReplaySDK_Initialize(int preset) {
-    @try {
-        SRVideoQualityPreset videoPreset = (SRVideoQualityPreset)preset;
-        BOOL success = [SausageReplayIOSSDK initializeWithPreset:videoPreset];
-        
-        // 创建录制回调实例
-        if (!g_recordingCallback) {
-            g_recordingCallback = [[UnityRecordingCallback alloc] init];
-        }
-        
-        return success;
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_Initialize error: %@", exception.reason);
-        return false;
+    SRVideoQualityPreset videoPreset = (SRVideoQualityPreset)preset;
+    BOOL success = [SausageReplayIOSSDK initializeWithPreset:videoPreset];
+    
+    // 创建录制回调实例
+    if (!g_recordingCallback) {
+        g_recordingCallback = [[UnityRecordingCallback alloc] init];
     }
+    
+    if (!success) {
+        NSLog(@"SausageReplaySDK_Initialize failed");
+    }
+    
+    return success;
 }
 
 extern "C" bool SausageReplaySDK_IsPlatformSupported(void) {
-    @try {
-        return [SausageReplayIOSSDK isPlatformSupported];
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_IsPlatformSupported error: %@", exception.reason);
-        return false;
-    }
+    return [SausageReplayIOSSDK isPlatformSupported];
 }
 
 extern "C" const char* SausageReplaySDK_GetVersion(void) {
-    @try {
-        NSString *version = [SausageReplayIOSSDK getVersion];
+    NSString *version = [SausageReplayIOSSDK version];
+    if (version) {
         return strdup(version.UTF8String);
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_GetVersion error: %@", exception.reason);
-        return strdup("Unknown");
     }
+    return strdup("1.0.0");
 }
 
 extern "C" void SausageReplaySDK_Release(void) {
-    @try {
-        [SausageReplayIOSSDK release];
-        g_recordingCallback = nil;
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_Release error: %@", exception.reason);
-    }
+    [SausageReplayIOSSDK releaseResources];
+    g_recordingCallback = nil;
 }
 
 extern "C" int SausageReplaySDK_GetCurrentPreset(void) {
-    @try {
-        SRVideoQualityPreset preset = [SausageReplayIOSSDK getCurrentPreset];
-        return (int)preset;
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_GetCurrentPreset error: %@", exception.reason);
-        return 1; // 默认返回 Standard
-    }
+    SRVideoQualityPreset preset = [SausageReplayIOSSDK getCurrentPreset];
+    return (int)preset;
 }
 
 // MARK: - 录制控制
 
 extern "C" bool SausageReplaySDK_StartRecording(void) {
-    @try {
-        return [SRRecordingManager startRecordingWithCallback:g_recordingCallback];
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_StartRecording error: %@", exception.reason);
-        return false;
-    }
+    return [SRRecordingManager startRecordingWithCallback:g_recordingCallback];
 }
 
 extern "C" void SausageReplaySDK_StopRecording(void) {
-    @try {
-        [SRRecordingManager stopRecording:^(SRRecordingResult *result) {
-            if (g_onRecordingStopped) {
-                g_onRecordingStopped(result.isSuccess, 
-                                   result.filePath.UTF8String, 
-                                   result.fileSize, 
-                                   result.duration);
-            }
-        }];
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_StopRecording error: %@", exception.reason);
-    }
+    [SRRecordingManager stopRecording:^(SRRecordingResult *result) {
+        if (g_onRecordingStopped) {
+            g_onRecordingStopped(result.isSuccess, 
+                               result.filePath.UTF8String, 
+                               result.fileSize, 
+                               result.duration);
+        }
+    }];
 }
 
 extern "C" int SausageReplaySDK_GetRecordingStatus(void) {
-    @try {
-        SRRecordingStatus status = [SRRecordingManager status];
-        return (int)status;
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_GetRecordingStatus error: %@", exception.reason);
-        return 0; // 返回 Idle 状态
-    }
+    SRRecordingStatus status = [SRRecordingManager status];
+    return (int)status;
 }
 
 // MARK: - 质量调整
 
 extern "C" bool SausageReplaySDK_AdjustRecordingQuality(int quality) {
-    @try {
-        SRVideoQuality videoQuality = (SRVideoQuality)quality;
-        return [SRRecordingManager adjustRecordingQuality:videoQuality];
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_AdjustRecordingQuality error: %@", exception.reason);
-        return false;
-    }
+    SRVideoQuality videoQuality = (SRVideoQuality)quality;
+    return [SRRecordingManager adjustRecordingQuality:videoQuality];
 }
 
 // MARK: - 状态监控
 
 extern "C" const char* SausageReplaySDK_GetDetailedStatus(void) {
-    @try {
-        SRDetailedStatus *status = [SRRecordingManager getDetailedStatus];
-        
-        NSDictionary *statusDict = @{
-            @"status": @(status.status),
-            @"isRecording": @(status.isRecording),
-            @"isPaused": @(status.isPaused),
-            @"duration": @(status.duration),
-            @"fileSize": @(status.fileSize),
-            @"errorCode": @(status.errorCode),
-            @"errorMessage": status.errorMessage ?: @""
-        };
-        
-        NSError *error;
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:statusDict options:0 error:&error];
-        
-        if (error) {
-            NSLog(@"JSON serialization error: %@", error.localizedDescription);
-            return strdup("{}");
-        }
-        
-        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return strdup(jsonString.UTF8String);
-    } @catch (NSException *exception) {
-        NSLog(@"SausageReplaySDK_GetDetailedStatus error: %@", exception.reason);
+    SRDetailedStatus *status = [SRRecordingManager getDetailedStatus];
+    
+    NSDictionary *statusDict = @{
+        @"status": @(status.status),
+        @"isRecording": @(status.isRecording),
+        @"isPaused": @(status.isPaused),
+        @"duration": @(status.duration),
+        @"fileSize": @(status.fileSize),
+        @"errorCode": @(status.errorCode),
+        @"errorMessage": status.errorMessage ?: @""
+    };
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:statusDict options:0 error:&error];
+    
+    if (error) {
+        NSLog(@"JSON serialization error: %@", error.localizedDescription);
         return strdup("{}");
     }
+    
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    return strdup(jsonString.UTF8String);
 }
 
 // MARK: - Unity回调设置
