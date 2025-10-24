@@ -550,9 +550,6 @@ namespace SausageReplay
         private static extern bool SausageReplaySDK_Initialize(int preset);
         
         [DllImport("__Internal")]
-        private static extern bool SausageReplaySDK_InitializeWithTier(int tier);
-        
-        [DllImport("__Internal")]
         private static extern bool SausageReplaySDK_IsPlatformSupported();
         
         [DllImport("__Internal")]
@@ -861,7 +858,6 @@ namespace SausageReplay
 #else
         // Editor 模式下的模拟实现
         private static bool SausageReplaySDK_Initialize(int preset) => false;
-        private static bool SausageReplaySDK_InitializeWithTier(int tier) => false;
         private static bool SausageReplaySDK_IsPlatformSupported() => false;
         private static string SausageReplaySDK_GetVersion() => "1.0.0";
         private static bool SausageReplaySDK_StartRecording() => false;
