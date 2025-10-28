@@ -101,6 +101,34 @@ object SausageReplayAndroidSDK {
         val context = StateHolder.appContext ?: return false
         return DeviceTierConfig.reloadConfig(context)
     }
+    
+    // ========== CPU性能优化相关API ==========
+    
+    /**
+     * 设置是否启用录制线程CPU小核绑定优化
+     * @param enabled true启用CPU优化，false禁用
+     * @return 是否设置成功
+     */
+    @JvmStatic
+    fun setCpuOptimizationEnabled(enabled: Boolean): Boolean {
+        return try {
+            StateHolder.enableCpuOptimization = enabled
+            android.util.Log.d("SausageReplayAndroidSDK", "CPU optimization ${if (enabled) "enabled" else "disabled"}")
+            true
+        } catch (e: Exception) {
+            android.util.Log.e("SausageReplayAndroidSDK", "Failed to set CPU optimization: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * 获取当前CPU优化状态
+     * @return true表示启用CPU优化，false表示禁用
+     */
+    @JvmStatic
+    fun isCpuOptimizationEnabled(): Boolean {
+        return StateHolder.enableCpuOptimization
+    }
 
     @JvmStatic
     fun release() {
@@ -914,6 +942,9 @@ private object StateHolder {
     // 保存最后录制的文件信息，用于状态查询
     var lastRecordedFile: File? = null
     
+    // CPU优化配置：是否启用录制线程CPU小核绑定
+    var enableCpuOptimization: Boolean = true
+    
     // 工作线程和任务队列
     val recordingWorker: RecordingWorker by lazy { RecordingWorker() }
     
@@ -932,9 +963,34 @@ private object StateHolder {
 
 // 录制工作线程
 private class RecordingWorker {
-    private val workerThread = HandlerThread("RecordingWorker").apply { start() }
+    private val workerThread = HandlerThread("RecordingWorker").apply { 
+        start()
+        // 绑定到CPU小核以优化性能
+        bindToSmallCores()
+    }
     private val workerHandler = Handler(workerThread.looper)
     private var isQuit = false
+    
+    /**
+     * 将录制线程绑定到CPU小核，避免影响UI性能
+     * 使用Android Process API设置线程调度策略
+     */
+    private fun bindToSmallCores() {
+        // 检查是否启用CPU优化
+        if (!StateHolder.enableCpuOptimization) {
+            android.util.Log.d("RecordingWorker", "CPU optimization disabled, skipping core binding")
+            return
+        }
+        
+        try {
+            val tid = android.os.Process.myTid()
+            // 设置线程调度策略为SCHED_OTHER，优先使用小核
+            android.os.Process.setThreadScheduler(tid, android.os.Process.SCHED_OTHER, 0)
+            android.util.Log.d("RecordingWorker", "Recording thread bound to small cores, tid=$tid")
+        } catch (e: Exception) {
+            android.util.Log.w("RecordingWorker", "Failed to bind recording thread to small cores: ${e.message}")
+        }
+    }
     
     fun enqueueTask(task: () -> Unit) {
         if (isQuit) {
