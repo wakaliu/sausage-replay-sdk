@@ -365,9 +365,16 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    [self.videoInput markAsFinished];
-    if (self.audioInput) {
-        [self.audioInput markAsFinished];
+    // 仅当 writer 正在写入且已启动会话时才结束写入
+    if (self.assetWriter && self.assetWriter.status == AVAssetWriterStatusWriting && self.hasStartedWriterSession) {
+        if (self.videoInput) { [self.videoInput markAsFinished]; }
+        if (self.audioInput) { [self.audioInput markAsFinished]; }
+    } else {
+        // 未开始写入（可能用户秒停或无首帧），直接返回失败结果
+        SRRecordingResult *result = [SRRecordingResult failureWithErrorCode:2006 errorMessage:@"Writer not started or no frames captured"];
+        if (callback) { callback(result); }
+        [self cleanup];
+        return;
     }
     
     [self.assetWriter finishWritingWithCompletionHandler:^{
@@ -615,6 +622,7 @@ static SRRecordingManager *_sharedInstance = nil;
     self.currentConfig = nil;
     self.recordingCallback = nil;
     self.isPaused = NO;
+    self.hasStartedWriterSession = NO;
     self.currentStatus = SRRecordingStatusIdle;  // 重置状态为空闲
 }
 
