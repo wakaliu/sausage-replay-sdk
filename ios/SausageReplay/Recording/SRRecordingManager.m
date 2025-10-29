@@ -170,13 +170,18 @@ static SRRecordingManager *_sharedInstance = nil;
     if (!vfmt) return;
     CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(vfmt);
     NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
+    NSInteger expectedFps = (config.qualityPreset == SRVideoQualityPresetHighFps || config.qualityPreset == SRVideoQualityPresetSmooth) ? 60 : 30;
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: AVVideoCodecTypeH264,
         AVVideoWidthKey: @(dims.width),
         AVVideoHeightKey: @(dims.height),
         AVVideoCompressionPropertiesKey: @{
             AVVideoAverageBitRateKey: @(bitrate),
-            AVVideoProfileLevelKey: AVVideoProfileLevelH264MainAutoLevel,
+            AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+            AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
+            AVVideoExpectedSourceFrameRateKey: @(expectedFps),
+            AVVideoAllowFrameReorderingKey: @NO,
+            AVVideoMaxKeyFrameIntervalKey: @(expectedFps * 2)
         }
     };
     self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings sourceFormatHint:vfmt];
@@ -224,12 +229,7 @@ static SRRecordingManager *_sharedInstance = nil;
             NSLog(@"❌ Capture error: %@", error.localizedDescription);
             return;
         }
-        if (bufferType == RPSampleBufferTypeVideo) {
-            static dispatch_once_t onceToken;
-            dispatch_once(&onceToken, ^{
-                NSLog(@"📸 First video sample received");
-            });
-        }
+        // 精简日志：去除首帧提示
         [weakSelf processSampleBuffer:sampleBuffer bufferType:bufferType];
     } completionHandler:^(NSError * _Nullable error) {
         if (error) {
@@ -278,14 +278,9 @@ static SRRecordingManager *_sharedInstance = nil;
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
             }
-            if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                if (self.videoInput.isReadyForMoreMediaData) {
-                    BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
-                    if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
-                } else {
-                    // 跳过当前帧，避免崩溃；轻度丢帧可接受
-                    NSLog(@"video input not ready, frame skipped");
-                }
+            if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer) && self.videoInput.isReadyForMoreMediaData) {
+                BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
+                if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
             }
             break;
         case RPSampleBufferTypeAudioApp:
@@ -293,13 +288,9 @@ static SRRecordingManager *_sharedInstance = nil;
             // 仅在视频会话已启动后写入音频，保证时间线一致
             if (self.hasStartedWriterSession) {
                 [self ensureAudioInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
-                if (self.audioInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                    if (self.audioInput.isReadyForMoreMediaData) {
-                        BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
-                        if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
-                    } else {
-                        NSLog(@"audio input not ready, frame skipped");
-                    }
+                if (self.audioInput && CMSampleBufferDataIsReady(sampleBuffer) && self.audioInput.isReadyForMoreMediaData) {
+                    BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
+                    if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
                 }
             }
             break;
@@ -559,17 +550,17 @@ static SRRecordingManager *_sharedInstance = nil;
 - (NSInteger)calculateBitrateForPreset:(SRVideoQualityPreset)preset {
     switch (preset) {
         case SRVideoQualityPresetBasic:
-            return 2000000;  // 2 Mbps
+            return 4000000;  // 4 Mbps（提高清晰度）
         case SRVideoQualityPresetStandard:
-            return 4000000;  // 4 Mbps
-        case SRVideoQualityPresetSmooth:
-            return 3000000;  // 3 Mbps
-        case SRVideoQualityPresetHighFps:
-            return 6000000;  // 6 Mbps
-        case SRVideoQualityPresetUltra:
             return 8000000;  // 8 Mbps
+        case SRVideoQualityPresetSmooth:
+            return 6000000;  // 6 Mbps（更高帧率适当加码）
+        case SRVideoQualityPresetHighFps:
+            return 12000000; // 12 Mbps
+        case SRVideoQualityPresetUltra:
+            return 16000000; // 16 Mbps
     }
-    return 4000000; // 默认4 Mbps
+    return 8000000; // 默认8 Mbps
 }
 
 
