@@ -9,6 +9,7 @@
 #import <ReplayKit/ReplayKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
+#import "SRPermissionManager.h"
 #import <mach/mach.h>
 
 @interface SRRecordingManager () <RPScreenRecorderDelegate>
