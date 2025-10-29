@@ -7,6 +7,7 @@
 
 #import "SRPermissionManager.h"
 #import <AVFoundation/AVFoundation.h>
+#import <Photos/Photos.h>
 
 @implementation SRPermissionManager
 
@@ -55,6 +56,35 @@
     // iOS的屏幕录制权限由ReplayKit系统管理
     // 无法直接检查，需要在录制时由系统处理
     return YES;
+}
+
++ (BOOL)hasPhotoLibraryWritePermission {
+    if (@available(iOS 14, *)) {
+        PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelAddOnly];
+        return status == PHAuthorizationStatusAuthorized || status == PHAuthorizationStatusLimited;
+    } else {
+        PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatus];
+        return status == PHAuthorizationStatusAuthorized;
+    }
+}
+
++ (void)requestPhotoLibraryWritePermission:(void(^)(BOOL granted, NSInteger errorCode, NSString *errorMessage))callback {
+    if (!callback) { return; }
+    void (^finish)(BOOL) = ^(BOOL granted){
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (granted) callback(YES, 0, nil);
+            else callback(NO, 1101, @"Photo library permission denied");
+        });
+    };
+    if (@available(iOS 14, *)) {
+        [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus status) {
+            finish(status == PHAuthorizationStatusAuthorized || status == PHAuthorizationStatusLimited);
+        }];
+    } else {
+        [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+            finish(status == PHAuthorizationStatusAuthorized);
+        }];
+    }
 }
 
 @end

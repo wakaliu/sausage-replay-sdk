@@ -121,13 +121,13 @@
     [self.clearLogButton addTarget:self action:@selector(clearLogButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
     [controlStackView addArrangedSubview:self.clearLogButton];
     
-    // 保存到相册按钮
+    // 保存到相册按钮（已由SDK自动保存，相对隐藏该按钮）
     self.saveToAlbumButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [self.saveToAlbumButton setTitle:@"保存到相册" forState:UIControlStateNormal];
+    [self.saveToAlbumButton setTitle:@"保存到相册(已自动)" forState:UIControlStateNormal];
     self.saveToAlbumButton.backgroundColor = [UIColor systemBlueColor];
     [self.saveToAlbumButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     self.saveToAlbumButton.layer.cornerRadius = 8;
-    [self.saveToAlbumButton addTarget:self action:@selector(saveToAlbumButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+    self.saveToAlbumButton.hidden = YES;
     [controlStackView addArrangedSubview:self.saveToAlbumButton];
     
     [mainStackView addArrangedSubview:controlStackView];
@@ -240,7 +240,6 @@
         [self.startButton.heightAnchor constraintEqualToConstant:44],
         [self.stopButton.heightAnchor constraintEqualToConstant:44],
         [self.clearLogButton.heightAnchor constraintEqualToConstant:44],
-        [self.saveToAlbumButton.heightAnchor constraintEqualToConstant:44],
         
         // 视频清晰度档位选择器高度约束
         [self.presetSegmentedControl.heightAnchor constraintEqualToConstant:32],
@@ -355,6 +354,7 @@
     [self addLog:[NSString stringWithFormat:@"开始录制 - 清晰度档位: %ld, 时长: %d秒, 音频: %@",
                   (long)currentPreset, (int)self.durationSlider.value, self.audioSwitch.isOn ? @"是" : @"否"]];
     
+    // 使用无参版本接口，内部采用默认配置（仅MP4、自动保存相册）
     BOOL success = [SRRecordingManager startRecordingWithCallback:self];
     if (success) {
         self.isRecording = YES;
@@ -374,9 +374,11 @@
             self.isRecording = NO;
             
             if (result.isSuccess) {
-                [self addLog:@"✅ 录制停止成功"];
-                [self addLog:[NSString stringWithFormat:@"文件路径: %@", result.filePath]];
-                [self addLog:[NSString stringWithFormat:@"文件大小: %.2f MB", result.fileSize / 1024.0 / 1024.0]];
+                [self addLog:@"✅ 录制停止成功（已自动保存到相册）"]; 
+                if (result.filePath) {
+                    [self addLog:[NSString stringWithFormat:@"沙盒文件路径: %@", result.filePath]];
+                }
+                [self addLog:[NSString stringWithFormat:@"文件大小(估算): %.2f MB", result.fileSize / 1024.0 / 1024.0]];
                 [self addLog:[NSString stringWithFormat:@"录制时长: %.2f 秒", result.duration]];
             } else {
                 [self addLog:[NSString stringWithFormat:@"❌ 录制停止失败: %@", result.errorMessage]];
@@ -425,12 +427,14 @@
 - (void)onRecordingStopped:(SRRecordingResult *)result {
     [self addLog:@"🛑 录制停止回调"];
     
-    if (result.isSuccess && result.filePath) {
-        self.lastRecordedVideoPath = result.filePath;
-        [self addLog:[NSString stringWithFormat:@"📁 视频已保存到: %@", result.filePath]];
-        [self addLog:[NSString stringWithFormat:@"📊 文件大小: %.2f MB, 时长: %.1f秒", 
+    if (result.isSuccess) {
+        if (result.filePath) {
+            self.lastRecordedVideoPath = result.filePath;
+            [self addLog:[NSString stringWithFormat:@"📁 录制文件(沙盒): %@", result.filePath]];
+        }
+        [self addLog:[NSString stringWithFormat:@"📊 文件大小(估算): %.2f MB, 时长: %.1f秒", 
                       result.fileSize / 1024.0 / 1024.0, result.duration]];
-        [self addLog:@"💡 点击'保存到相册'按钮将视频保存到系统相册"];
+        [self addLog:@"📱 已自动尝试保存到系统相册"];
     } else {
         [self addLog:[NSString stringWithFormat:@"❌ 录制失败: %@", result.errorMessage ?: @"未知错误"]];
     }

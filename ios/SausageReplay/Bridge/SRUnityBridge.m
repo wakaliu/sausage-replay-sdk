@@ -122,12 +122,27 @@ int SausageReplaySDK_GetCurrentPreset(void) {
     return (int)[SausageReplayIOSSDK getCurrentPreset];
 }
 
-bool SausageReplaySDK_StartRecording(void) {
+bool SausageReplaySDK_StartRecording(const char* configJson) {
+    if (!configJson) {
+        return false;
+    }
+    
+    NSString *jsonString = [NSString stringWithUTF8String:configJson];
+    NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSError *error;
+    NSDictionary *configDict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+    if (error) {
+        NSLog(@"Failed to parse config JSON: %@", error.localizedDescription);
+        return false;
+    }
+    
     // 创建Unity回调
     if (!_unityCallback) {
         _unityCallback = [[SRUnityRecordingCallback alloc] init];
     }
     
+    // 无参版本：使用SDK默认配置（仅MP4，自动保存相册）
     return [SRRecordingManager startRecordingWithCallback:_unityCallback];
 }
 

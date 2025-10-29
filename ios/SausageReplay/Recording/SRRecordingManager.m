@@ -56,8 +56,16 @@ static SRRecordingManager *_sharedInstance = nil;
 
 #pragma mark - Public Methods
 
++ (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config
+                        callback:(nullable id<SRRecordingCallback>)callback {
+    return [[self sharedInstance] startRecordingWithConfig:config callback:callback];
+}
+
 + (BOOL)startRecordingWithCallback:(nullable id<SRRecordingCallback>)callback {
-    return [[self sharedInstance] startRecordingWithCallback:callback];
+    SRRecordingConfig *config = [SRRecordingConfig defaultConfig];
+    // 强制仅 MP4
+    config.outputFormat = SROutputFormatMP4;
+    return [self startRecordingWithConfig:config callback:callback];
 }
 
 + (void)stopRecording:(void(^)(SRRecordingResult *result))callback {
@@ -93,7 +101,8 @@ static SRRecordingManager *_sharedInstance = nil;
 
 #pragma mark - Private Methods
 
-- (BOOL)startRecordingWithCallback:(nullable id<SRRecordingCallback>)callback {
+- (BOOL)startRecordingWithConfig:(SRRecordingConfig *)config
+                        callback:(nullable id<SRRecordingCallback>)callback {
     if (self.currentStatus != SRRecordingStatusIdle) {
         if (callback) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -103,13 +112,24 @@ static SRRecordingManager *_sharedInstance = nil;
         return NO;
     }
     
-    // 使用默认配置，基于初始化时设置的视频清晰度参数
-    self.currentConfig = [SRRecordingConfig defaultConfig];
+    self.currentConfig = config;
     self.recordingCallback = callback;
     self.currentStatus = SRRecordingStatusStarting;
     
-    // 直接使用ReplayKit录制，不需要AVAssetWriter
-    [self startScreenRecording];
+    // 使用 ReplayKit startCapture + AVAssetWriter，强制 MP4(H.264+AAC)
+    __weak typeof(self) weakSelf = self;
+    [self setupAssetWriterWithConfig:config completion:^(BOOL success, NSError *error) {
+        if (!success) {
+            weakSelf.currentStatus = SRRecordingStatusIdle;
+            if (weakSelf.recordingCallback) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [weakSelf.recordingCallback onRecordingError:2005 errorMessage:error.localizedDescription ?: @"Failed to init writer"];
+                });
+            }
+            return;
+        }
+        [weakSelf startScreenRecording];
+    }];
     
     return YES;
 }
@@ -212,30 +232,34 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    // 配置屏幕录制器
+    // 配置屏幕录制器并开始捕获 SampleBuffer
     RPScreenRecorder *recorder = [RPScreenRecorder sharedRecorder];
     recorder.microphoneEnabled = self.currentConfig.includeAudio;
-    
-    // 使用ReplayKit的简单录制API
-    [recorder startRecordingWithHandler:^(NSError *error) {
+    __weak typeof(self) weakSelf = self;
+    [recorder startCaptureWithHandler:^(CMSampleBufferRef  _Nonnull sampleBuffer, RPSampleBufferType bufferType, NSError * _Nullable error) {
         if (error) {
-            self.currentStatus = SRRecordingStatusIdle;
-            if (self.recordingCallback) {
+            NSLog(@"❌ Capture error: %@", error.localizedDescription);
+            return;
+        }
+        [weakSelf processSampleBuffer:sampleBuffer bufferType:bufferType];
+    } completionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            weakSelf.currentStatus = SRRecordingStatusIdle;
+            if (weakSelf.recordingCallback) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    [self.recordingCallback onRecordingError:2004 errorMessage:error.localizedDescription];
+                    [weakSelf.recordingCallback onRecordingError:2004 errorMessage:error.localizedDescription];
                 });
             }
-        } else {
-            NSLog(@"✅ Recording started successfully, status set to: %ld", (long)SRRecordingStatusRecording);
-            self.currentStatus = SRRecordingStatusRecording;
-            self.startTime = [[NSDate date] timeIntervalSince1970];
-            [self startTimers];
-            
-            if (self.recordingCallback) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [self.recordingCallback onRecordingStarted];
-                });
-            }
+            return;
+        }
+        NSLog(@"✅ Recording started successfully, status set to: %ld", (long)SRRecordingStatusRecording);
+        weakSelf.currentStatus = SRRecordingStatusRecording;
+        weakSelf.startTime = [[NSDate date] timeIntervalSince1970];
+        [weakSelf startTimers];
+        if (weakSelf.recordingCallback) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [weakSelf.recordingCallback onRecordingStarted];
+            });
         }
     }];
 }
@@ -282,62 +306,30 @@ static SRRecordingManager *_sharedInstance = nil;
     self.currentStatus = SRRecordingStatusStopping;
     [self stopTimers];
     
-    // 使用ReplayKit的停止录制API
-    [[RPScreenRecorder sharedRecorder] stopRecordingWithHandler:^(RPPreviewViewController *previewViewController, NSError *error) {
+    // 使用 startCapture 路径：停止捕获 -> 完成写入 -> 保存到相册
+    [[RPScreenRecorder sharedRecorder] stopCaptureWithHandler:^(NSError * _Nullable error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error) {
-                NSLog(@"❌ Stop recording error: %@", error.localizedDescription);
+                NSLog(@"❌ Stop capture error: %@", error.localizedDescription);
                 SRRecordingResult *result = [SRRecordingResult failureWithErrorCode:2004 errorMessage:error.localizedDescription];
                 [self cleanup];
-                if (callback) {
-                    callback(result);
-                }
+                if (callback) { callback(result); }
                 return;
             }
-            
-            NSLog(@"✅ Recording stopped successfully, got preview controller");
-            
-            // 由于ReplayKit的安全限制，我们无法直接获取视频文件
-            // 但我们可以创建一个占位结果，让用户知道录制已完成
-            NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] firstObject];
-            NSString *fileName = [NSString stringWithFormat:@"replay_%ld.mp4", (long)[[NSDate date] timeIntervalSince1970]];
-            NSURL *outputURL = [documentsURL URLByAppendingPathComponent:fileName];
-            
-            float duration = [[NSDate date] timeIntervalSince1970] - self.startTime;
-            
-            // 创建一个占位文件，表示录制已完成
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-            NSString *placeholderContent = [NSString stringWithFormat:@"ReplayKit recording completed at %@", [NSDate date]];
-            [placeholderContent writeToFile:outputURL.path atomically:YES encoding:NSUTF8StringEncoding error:nil];
-            
-            // 获取实际文件大小
-            NSDictionary *attributes = [fileManager attributesOfItemAtPath:outputURL.path error:nil];
-            long long fileSize = [attributes[NSFileSize] longLongValue];
-            
-            SRRecordingResult *result = [SRRecordingResult successWithFilePath:outputURL.path
-                                                                      fileSize:fileSize
-                                                                      duration:duration];
-            
-            if (self.recordingCallback) {
-                [self.recordingCallback onRecordingStopped:result];
-            }
-            
-            if (callback) {
-                callback(result);
-            }
-            
-            [self cleanup];
-            
-            // 显示预览界面让用户保存视频
-            if (previewViewController) {
-                // 设置代理
-                previewViewController.previewControllerDelegate = self;
-                
-                UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-                if (rootViewController) {
-                    [rootViewController presentViewController:previewViewController animated:YES completion:nil];
-                }
-            }
+            [self finishWritingWithCallback:^(SRRecordingResult *result) {
+                // 保存到相册
+                [self saveOutputToPhotoLibrary:self.outputURL completion:^(BOOL success, NSString * _Nullable localId, NSError * _Nullable err) {
+                    if (success) {
+                        if (self.recordingCallback) { [self.recordingCallback onRecordingStopped:result]; }
+                        if (callback) { callback(result); }
+                    } else {
+                        NSLog(@"⚠️ Save to photos failed: %@", err.localizedDescription);
+                        if (self.recordingCallback) { [self.recordingCallback onRecordingStopped:result]; }
+                        if (callback) { callback(result); }
+                    }
+                    [self cleanup];
+                }];
+            } error:nil];
         });
     }];
 }
@@ -388,6 +380,29 @@ static SRRecordingManager *_sharedInstance = nil;
             
             [self cleanup];
         });
+    }];
+}
+
+// 保存到相册（需要相册写入权限）
+- (void)saveOutputToPhotoLibrary:(NSURL *)fileURL
+                      completion:(void(^)(BOOL success, NSString *_Nullable localId, NSError *_Nullable error))completion {
+    if (!fileURL) { if (completion) completion(NO, nil, [NSError errorWithDomain:@"com.funny.replaysdk" code:1201 userInfo:@{NSLocalizedDescriptionKey:@"Output URL is nil"}]); return; }
+    // 动态权限
+    if (![SRPermissionManager hasPhotoLibraryWritePermission]) {
+        [SRPermissionManager requestPhotoLibraryWritePermission:^(BOOL granted, NSInteger errorCode, NSString *errorMessage) {
+            if (!granted) {
+                if (completion) completion(NO, nil, [NSError errorWithDomain:@"com.funny.replaysdk" code:1202 userInfo:@{NSLocalizedDescriptionKey:errorMessage ?: @"Photo permission denied"}]);
+                return;
+            }
+            [self saveOutputToPhotoLibrary:fileURL completion:completion];
+        }];
+        return;
+    }
+    [[PHPhotoLibrary sharedPhotoLibrary] performChanges:^{
+        PHAssetChangeRequest *req = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:fileURL];
+        (void)req;
+    } completionHandler:^(BOOL success, NSError * _Nullable error) {
+        if (completion) completion(success, nil, error);
     }];
 }
 
@@ -591,18 +606,7 @@ static SRRecordingManager *_sharedInstance = nil;
     // 录制停止时的处理
 }
 
-#pragma mark - RPPreviewViewControllerDelegate
-
-- (void)previewControllerDidFinish:(RPPreviewViewController *)previewController {
-    NSLog(@"📱 Preview controller finished");
-    // 用户完成了预览操作（保存或取消）
-    [previewController dismissViewControllerAnimated:YES completion:nil];
-}
-
-- (void)previewController:(RPPreviewViewController *)previewController didFinishWithActivityTypes:(NSSet<NSString *> *)activityTypes {
-    NSLog(@"📱 Preview controller finished with activities: %@", activityTypes);
-    // 用户完成了预览操作，activityTypes包含用户选择的操作类型
-    [previewController dismissViewControllerAnimated:YES completion:nil];
-}
+// 预览功能暂时屏蔽：保留空实现以兼容协议，但不展示 UI
+// #pragma mark - RPPreviewViewControllerDelegate
 
 @end

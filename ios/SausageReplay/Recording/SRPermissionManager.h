@@ -12,7 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * 权限管理器
- * 负责处理麦克风权限的检查和申请
+ * 负责处理麦克风、相册写入权限的检查和申请
  */
 @interface SRPermissionManager : NSObject
 
@@ -34,6 +34,17 @@ NS_ASSUME_NONNULL_BEGIN
  * @return 总是返回YES，实际权限由ReplayKit处理
  */
 + (BOOL)hasScreenRecordingPermission;
+
+/**
+ * 检查是否有相册写入权限
+ */
++ (BOOL)hasPhotoLibraryWritePermission;
+
+/**
+ * 请求相册写入权限
+ * @param callback 权限结果回调 (BOOL granted, NSInteger errorCode, NSString *errorMessage)
+ */
++ (void)requestPhotoLibraryWritePermission:(void(^)(BOOL granted, NSInteger errorCode, NSString *errorMessage))callback;
 
 @end
 
