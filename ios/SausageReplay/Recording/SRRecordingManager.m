@@ -237,6 +237,12 @@ static SRRecordingManager *_sharedInstance = nil;
             NSLog(@"❌ Capture error: %@", error.localizedDescription);
             return;
         }
+        if (bufferType == RPSampleBufferTypeVideo) {
+            static dispatch_once_t onceToken;
+            dispatch_once(&onceToken, ^{
+                NSLog(@"📸 First video sample received");
+            });
+        }
         [weakSelf processSampleBuffer:sampleBuffer bufferType:bufferType];
     } completionHandler:^(NSError * _Nullable error) {
         if (error) {
@@ -265,8 +271,9 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    // 确保AssetWriter处于写入状态
-    if (self.assetWriter.status != AVAssetWriterStatusWriting) {
+    // 仅在发生失败时提前返回；允许在 Unknown 状态下用首帧启动会话
+    if (self.assetWriter.status == AVAssetWriterStatusFailed) {
+        NSLog(@"assetWriter failed: %@", self.assetWriter.error.localizedDescription);
         return;
     }
     
