@@ -166,51 +166,48 @@ static SRRecordingManager *_sharedInstance = nil;
     }
 }
 
-// 基于首帧动态创建视频输入，尺寸与像素格式与源一致，避免拉伸
+// 基于首帧动态创建视频输入（使用 sourceFormatHint，直接 append CMSampleBuffer）
 - (void)ensureVideoInputFromSampleBuffer:(CMSampleBufferRef)sampleBuffer config:(SRRecordingConfig *)config {
     if (self.videoInput) return;
-    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-    if (!imageBuffer) return;
-    size_t width = CVPixelBufferGetWidth(imageBuffer);
-    size_t height = CVPixelBufferGetHeight(imageBuffer);
+    CMFormatDescriptionRef vfmt = CMSampleBufferGetFormatDescription(sampleBuffer);
+    if (!vfmt) return;
+    CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(vfmt);
     NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
 
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: AVVideoCodecTypeH264,
-        AVVideoWidthKey: @(width),
-        AVVideoHeightKey: @(height),
+        AVVideoWidthKey: @(dims.width),
+        AVVideoHeightKey: @(dims.height),
         AVVideoCompressionPropertiesKey: @{
             AVVideoAverageBitRateKey: @(bitrate),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264MainAutoLevel,
         }
     };
-    self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings];
+    self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo
+                                                        outputSettings:videoSettings
+                                                     sourceFormatHint:vfmt];
     self.videoInput.expectsMediaDataInRealTime = YES;
-
-    // 创建像素缓冲适配器，使用首帧的像素格式，避免不匹配
-    OSType pixelFormat = CVPixelBufferGetPixelFormatType(imageBuffer);
-    NSDictionary *pixelBufferAttributes = @{
-        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(pixelFormat),
-        (NSString *)kCVPixelBufferWidthKey: @(width),
-        (NSString *)kCVPixelBufferHeightKey: @(height)
-    };
-    self.pixelBufferAdaptor = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:self.videoInput sourcePixelBufferAttributes:pixelBufferAttributes];
+    self.videoInput.transform = CGAffineTransformIdentity;
 
     if ([self.assetWriter canAddInput:self.videoInput]) {
         [self.assetWriter addInput:self.videoInput];
     }
 }
 
-// 懒创建音频输入
-- (void)ensureAudioInputWithConfig:(SRRecordingConfig *)config {
+// 懒创建音频输入（使用 sourceFormatHint）
+- (void)ensureAudioInputFromSampleBuffer:(CMSampleBufferRef)sampleBuffer config:(SRRecordingConfig *)config {
     if (self.audioInput || !config.includeAudio) return;
+    CMFormatDescriptionRef afmt = CMSampleBufferGetFormatDescription(sampleBuffer);
+    if (!afmt) return;
     NSDictionary *audioSettings = @{
         AVFormatIDKey: @(kAudioFormatMPEG4AAC),
         AVSampleRateKey: @(48000),
         AVNumberOfChannelsKey: @(2),
         AVEncoderBitRateKey: @(128000)
     };
-    self.audioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio outputSettings:audioSettings];
+    self.audioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio
+                                                        outputSettings:audioSettings
+                                                     sourceFormatHint:afmt];
     self.audioInput.expectsMediaDataInRealTime = YES;
     if ([self.assetWriter canAddInput:self.audioInput]) {
         [self.assetWriter addInput:self.audioInput];
@@ -287,24 +284,19 @@ static SRRecordingManager *_sharedInstance = nil;
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
             }
-            if (self.videoInput && self.videoInput.readyForMoreMediaData) {
-                CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-                CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-                if (pixelBuffer && self.pixelBufferAdaptor) {
-                    BOOL ok = [self.pixelBufferAdaptor appendPixelBuffer:pixelBuffer withPresentationTime:pts];
-                    if (!ok) {
-                        NSLog(@"appendPixelBuffer failed: %@", self.assetWriter.error.localizedDescription);
-                    }
-                }
+            if (self.videoInput && self.videoInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+                BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
+                if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
             }
             break;
         case RPSampleBufferTypeAudioApp:
         case RPSampleBufferTypeAudioMic:
             // 仅在视频会话已启动后写入音频，保证时间线一致
             if (self.hasStartedWriterSession) {
-                [self ensureAudioInputWithConfig:self.currentConfig];
-                if (self.audioInput && self.audioInput.readyForMoreMediaData) {
-                    [self.audioInput appendSampleBuffer:sampleBuffer];
+                [self ensureAudioInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
+                if (self.audioInput && self.audioInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+                    BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
+                    if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
                 }
             }
             break;
