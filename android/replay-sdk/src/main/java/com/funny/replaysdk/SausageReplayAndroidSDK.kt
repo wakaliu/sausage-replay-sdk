@@ -551,8 +551,8 @@ object RecordingManager {
                     recorder.setAudioEncodingBitRate(recordingParams.audioBitrate.toInt())
                 }
                 
-                // 尝试设置高质量编码参数（Android 7.0+）
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                // 尝试设置高质量编码参数（Android 8.0+）
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     try {
                         // 设置编码配置文件
                         when (recordingParams.encodingProfile) {
