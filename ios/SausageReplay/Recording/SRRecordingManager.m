@@ -149,32 +149,27 @@ static SRRecordingManager *_sharedInstance = nil;
     // 删除已存在的文件
     [[NSFileManager defaultManager] removeItemAtURL:outputURL error:nil];
     
-    NSError *error;
-    self.assetWriter = [[AVAssetWriter alloc] initWithURL:outputURL fileType:AVFileTypeMPEG4 error:&error];
-    if (error) {
-        completion(NO, error);
-        return;
-    }
-    
-    // 输入改为懒创建：在收到首帧时根据真实尺寸/格式创建，避免变形
-    
-    // 开始写入（会话在首帧视频到来时用其时间戳启动，避免白屏）
-    if ([self.assetWriter startWriting]) {
-        self.hasStartedWriterSession = NO;
-        completion(YES, nil);
-    } else {
-        completion(NO, self.assetWriter.error);
-    }
+    // 延迟到首帧再创建 AVAssetWriter 与输入，避免 status=0 时序问题
+    self.assetWriter = nil;
+    self.videoInput = nil;
+    self.audioInput = nil;
+    self.hasStartedWriterSession = NO;
+    completion(YES, nil);
 }
 
 // 基于首帧动态创建视频输入（使用 sourceFormatHint，直接 append CMSampleBuffer）
 - (void)ensureVideoInputFromSampleBuffer:(CMSampleBufferRef)sampleBuffer config:(SRRecordingConfig *)config {
     if (self.videoInput) return;
+    // 若尚未创建 writer，则此处创建
+    if (!self.assetWriter) {
+        NSError *err = nil;
+        self.assetWriter = [[AVAssetWriter alloc] initWithURL:self.outputURL fileType:AVFileTypeMPEG4 error:&err];
+        if (err) { NSLog(@"create writer failed: %@", err.localizedDescription); return; }
+    }
     CMFormatDescriptionRef vfmt = CMSampleBufferGetFormatDescription(sampleBuffer);
     if (!vfmt) return;
     CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(vfmt);
     NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
-
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: AVVideoCodecTypeH264,
         AVVideoWidthKey: @(dims.width),
@@ -184,20 +179,18 @@ static SRRecordingManager *_sharedInstance = nil;
             AVVideoProfileLevelKey: AVVideoProfileLevelH264MainAutoLevel,
         }
     };
-    self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo
-                                                        outputSettings:videoSettings
-                                                     sourceFormatHint:vfmt];
+    self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings sourceFormatHint:vfmt];
     self.videoInput.expectsMediaDataInRealTime = YES;
     self.videoInput.transform = CGAffineTransformIdentity;
-
-    if ([self.assetWriter canAddInput:self.videoInput]) {
-        [self.assetWriter addInput:self.videoInput];
-    }
+    if ([self.assetWriter canAddInput:self.videoInput]) { [self.assetWriter addInput:self.videoInput]; }
+    // 确保调用 startWriting 与 startSessionAtSourceTime
+    if (self.assetWriter.status == AVAssetWriterStatusUnknown) { [self.assetWriter startWriting]; }
 }
 
 // 懒创建音频输入（使用 sourceFormatHint）
 - (void)ensureAudioInputFromSampleBuffer:(CMSampleBufferRef)sampleBuffer config:(SRRecordingConfig *)config {
     if (self.audioInput || !config.includeAudio) return;
+    if (!self.assetWriter) return;
     CMFormatDescriptionRef afmt = CMSampleBufferGetFormatDescription(sampleBuffer);
     if (!afmt) return;
     NSDictionary *audioSettings = @{
@@ -206,13 +199,9 @@ static SRRecordingManager *_sharedInstance = nil;
         AVNumberOfChannelsKey: @(2),
         AVEncoderBitRateKey: @(128000)
     };
-    self.audioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio
-                                                        outputSettings:audioSettings
-                                                     sourceFormatHint:afmt];
+    self.audioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio outputSettings:audioSettings sourceFormatHint:afmt];
     self.audioInput.expectsMediaDataInRealTime = YES;
-    if ([self.assetWriter canAddInput:self.audioInput]) {
-        [self.assetWriter addInput:self.audioInput];
-    }
+    if ([self.assetWriter canAddInput:self.audioInput]) { [self.assetWriter addInput:self.audioInput]; }
 }
 
 - (void)startScreenRecording {
@@ -280,12 +269,8 @@ static SRRecordingManager *_sharedInstance = nil;
             // 确保视频输入按首帧尺寸创建
             [self ensureVideoInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
             // 确保 writer 已进入 Writing；若仍为 Unknown，这里补发 startWriting
-            if (self.assetWriter.status == AVAssetWriterStatusUnknown) {
-                BOOL okStart = [self.assetWriter startWriting];
-                if (!okStart) {
-                    NSLog(@"startWriting retry failed: %@", self.assetWriter.error.localizedDescription);
-                    return;
-                }
+            if (self.assetWriter && self.assetWriter.status == AVAssetWriterStatusUnknown) {
+                [self.assetWriter startWriting];
             }
             // 在首帧视频到达时，用其时间戳启动会话
             if (!self.hasStartedWriterSession) {
