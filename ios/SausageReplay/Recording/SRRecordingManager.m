@@ -269,7 +269,7 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    // 仅在发生失败时提前返回；允许在 Unknown 状态下用首帧启动会话
+    // 仅在发生失败时提前返回
     if (self.assetWriter.status == AVAssetWriterStatusFailed) {
         NSLog(@"assetWriter failed: %@", self.assetWriter.error.localizedDescription);
         return;
@@ -279,6 +279,14 @@ static SRRecordingManager *_sharedInstance = nil;
         case RPSampleBufferTypeVideo:
             // 确保视频输入按首帧尺寸创建
             [self ensureVideoInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
+            // 确保 writer 已进入 Writing；若仍为 Unknown，这里补发 startWriting
+            if (self.assetWriter.status == AVAssetWriterStatusUnknown) {
+                BOOL okStart = [self.assetWriter startWriting];
+                if (!okStart) {
+                    NSLog(@"startWriting retry failed: %@", self.assetWriter.error.localizedDescription);
+                    return;
+                }
+            }
             // 在首帧视频到达时，用其时间戳启动会话
             if (!self.hasStartedWriterSession) {
                 CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
