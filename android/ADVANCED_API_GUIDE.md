@@ -118,7 +118,38 @@ if (success) {
 }
 ```
 
-### 3. 内存使用监控API
+### 3. CPU性能优化API
+
+#### 设置CPU优化
+```kotlin
+// 启用录制线程CPU小核绑定优化（默认启用）
+val success = SausageReplayAndroidSDK.setCpuOptimizationEnabled(true)
+if (success) {
+    Log.d("CPU", "CPU optimization enabled")
+} else {
+    Log.e("CPU", "Failed to enable CPU optimization")
+}
+
+// 禁用CPU优化
+SausageReplayAndroidSDK.setCpuOptimizationEnabled(false)
+```
+
+#### 检查CPU优化状态
+```kotlin
+// 检查当前CPU优化状态
+val isEnabled = SausageReplayAndroidSDK.isCpuOptimizationEnabled()
+Log.d("CPU", "CPU optimization enabled: $isEnabled")
+```
+
+**CPU优化特性**：
+- **默认启用**：SDK初始化后自动启用CPU优化
+- **后台优先级**：设置录制线程优先级为THREAD_PRIORITY_BACKGROUND
+- **小核优先**：系统会优先将后台线程分配到CPU小核
+- **动态配置**：支持运行时启用/禁用CPU优化
+- **降级处理**：优先级设置失败时自动降级到默认行为
+- **功耗优化**：降低功耗，延长电池续航时间
+
+### 4. 内存使用监控API
 
 #### 获取内存使用情况
 ```kotlin
