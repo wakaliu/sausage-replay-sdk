@@ -10,6 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
 #import "SRPermissionManager.h"
+#import <VideoToolbox/VideoToolbox.h>
 #import <mach/mach.h>
 
 @interface SRRecordingManager () <RPScreenRecorderDelegate>
@@ -176,40 +177,66 @@ static SRRecordingManager *_sharedInstance = nil;
         bitrate = (NSInteger)(bitrate * 1.3); // 60fps 提升码率
     }
 
-    // 优先 HEVC（iOS 11+ 且设备支持），否则回退 H.264
+    // 优先 HEVC（iOS 11+），若设备不支持会在创建input时失败并回退H.264
     NSString *preferredCodec = AVVideoCodecTypeH264;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
     if (@available(iOS 11.0, *)) {
-        NSDictionary *hevcProbe = @{ AVVideoCodecKey: AVVideoCodecTypeHEVC,
-                                     AVVideoWidthKey: @(dims.width),
-                                     AVVideoHeightKey: @(dims.height) };
-        if ([AVAssetWriterInput canApplyOutputSettings:hevcProbe forMediaType:AVMediaTypeVideo]) {
-            preferredCodec = AVVideoCodecTypeHEVC;
-        }
+        preferredCodec = AVVideoCodecTypeHEVC; // iOS 11+ 尝试HEVC
     }
 #endif
 
+    // 构建压缩属性（根据编码器类型）
+    NSMutableDictionary *compressionProps = [NSMutableDictionary dictionaryWithDictionary:@{
+        AVVideoAverageBitRateKey: @(bitrate),
+        AVVideoExpectedSourceFrameRateKey: @(expectedFps),
+        AVVideoAllowFrameReorderingKey: @NO,
+        AVVideoMaxKeyFrameIntervalKey: @(expectedFps * 2)
+    }];
+    
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+    if ([preferredCodec isEqualToString:AVVideoCodecTypeHEVC]) {
+        compressionProps[AVVideoProfileLevelKey] = (__bridge NSString *)kVTProfileLevel_HEVC_Main_AutoLevel;
+    } else {
+        compressionProps[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel;
+        compressionProps[AVVideoH264EntropyModeKey] = AVVideoH264EntropyModeCABAC;
+    }
+#else
+    compressionProps[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel;
+    compressionProps[AVVideoH264EntropyModeKey] = AVVideoH264EntropyModeCABAC;
+#endif
+    
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: preferredCodec,
         AVVideoWidthKey: @(dims.width),
         AVVideoHeightKey: @(dims.height),
-        AVVideoCompressionPropertiesKey: @{
-            AVVideoAverageBitRateKey: @(bitrate),
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-            AVVideoProfileLevelKey: [preferredCodec isEqualToString:AVVideoCodecTypeHEVC] ? AVVideoProfileLevelHEVCMainAutoLevel : AVVideoProfileLevelH264HighAutoLevel,
-#else
-            AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-#endif
-            AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
-            AVVideoExpectedSourceFrameRateKey: @(expectedFps),
-            AVVideoAllowFrameReorderingKey: @NO,
-            AVVideoMaxKeyFrameIntervalKey: @(expectedFps * 2)
-        }
+        AVVideoCompressionPropertiesKey: compressionProps
     };
     self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings sourceFormatHint:vfmt];
     self.videoInput.expectsMediaDataInRealTime = YES;
     self.videoInput.transform = CGAffineTransformIdentity;
-    if ([self.assetWriter canAddInput:self.videoInput]) { [self.assetWriter addInput:self.videoInput]; }
+    
+    // 如果HEVC不支持，回退到H.264
+    if (![self.assetWriter canAddInput:self.videoInput] && [preferredCodec isEqualToString:AVVideoCodecTypeHEVC]) {
+        // 回退到H.264
+        NSMutableDictionary *h264Props = [compressionProps mutableCopy];
+        h264Props[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel;
+        h264Props[AVVideoH264EntropyModeKey] = AVVideoH264EntropyModeCABAC;
+        
+        NSDictionary *h264Settings = @{
+            AVVideoCodecKey: AVVideoCodecTypeH264,
+            AVVideoWidthKey: @(dims.width),
+            AVVideoHeightKey: @(dims.height),
+            AVVideoCompressionPropertiesKey: h264Props
+        };
+        
+        self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:h264Settings sourceFormatHint:vfmt];
+        self.videoInput.expectsMediaDataInRealTime = YES;
+        self.videoInput.transform = CGAffineTransformIdentity;
+    }
+    
+    if ([self.assetWriter canAddInput:self.videoInput]) {
+        [self.assetWriter addInput:self.videoInput];
+    }
     // 确保调用 startWriting 与 startSessionAtSourceTime
     if (self.assetWriter.status == AVAssetWriterStatusUnknown) { [self.assetWriter startWriting]; }
 }
