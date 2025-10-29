@@ -279,8 +279,13 @@ static SRRecordingManager *_sharedInstance = nil;
                 self.hasStartedWriterSession = YES;
             }
             if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
-                if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
+                if (self.videoInput.isReadyForMoreMediaData) {
+                    BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
+                    if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
+                } else {
+                    // 跳过当前帧，避免崩溃；轻度丢帧可接受
+                    NSLog(@"video input not ready, frame skipped");
+                }
             }
             break;
         case RPSampleBufferTypeAudioApp:
@@ -289,8 +294,12 @@ static SRRecordingManager *_sharedInstance = nil;
             if (self.hasStartedWriterSession) {
                 [self ensureAudioInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
                 if (self.audioInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                    BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
-                    if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
+                    if (self.audioInput.isReadyForMoreMediaData) {
+                        BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
+                        if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
+                    } else {
+                        NSLog(@"audio input not ready, frame skipped");
+                    }
                 }
             }
             break;
