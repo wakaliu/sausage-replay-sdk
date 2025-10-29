@@ -170,14 +170,36 @@ static SRRecordingManager *_sharedInstance = nil;
     if (!vfmt) return;
     CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(vfmt);
     NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
-    NSInteger expectedFps = (config.qualityPreset == SRVideoQualityPresetHighFps || config.qualityPreset == SRVideoQualityPresetSmooth) ? 60 : 30;
+    // 优先 60fps 画质
+    NSInteger expectedFps = 60;
+    if (expectedFps == 60) {
+        bitrate = (NSInteger)(bitrate * 1.3); // 60fps 提升码率
+    }
+
+    // 优先 HEVC（iOS 11+ 且设备支持），否则回退 H.264
+    NSString *preferredCodec = AVVideoCodecTypeH264;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+    if (@available(iOS 11.0, *)) {
+        NSDictionary *hevcProbe = @{ AVVideoCodecKey: AVVideoCodecTypeHEVC,
+                                     AVVideoWidthKey: @(dims.width),
+                                     AVVideoHeightKey: @(dims.height) };
+        if ([AVAssetWriterInput canApplyOutputSettings:hevcProbe forMediaType:AVMediaTypeVideo]) {
+            preferredCodec = AVVideoCodecTypeHEVC;
+        }
+    }
+#endif
+
     NSDictionary *videoSettings = @{
-        AVVideoCodecKey: AVVideoCodecTypeH264,
+        AVVideoCodecKey: preferredCodec,
         AVVideoWidthKey: @(dims.width),
         AVVideoHeightKey: @(dims.height),
         AVVideoCompressionPropertiesKey: @{
             AVVideoAverageBitRateKey: @(bitrate),
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+            AVVideoProfileLevelKey: [preferredCodec isEqualToString:AVVideoCodecTypeHEVC] ? AVVideoProfileLevelHEVCMainAutoLevel : AVVideoProfileLevelH264HighAutoLevel,
+#else
             AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+#endif
             AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC,
             AVVideoExpectedSourceFrameRateKey: @(expectedFps),
             AVVideoAllowFrameReorderingKey: @NO,
