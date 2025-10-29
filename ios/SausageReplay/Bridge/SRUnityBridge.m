@@ -122,21 +122,7 @@ int SausageReplaySDK_GetCurrentPreset(void) {
     return (int)[SausageReplayIOSSDK getCurrentPreset];
 }
 
-bool SausageReplaySDK_StartRecording(const char* configJson) {
-    if (!configJson) {
-        return false;
-    }
-    
-    NSString *jsonString = [NSString stringWithUTF8String:configJson];
-    NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-    
-    NSError *error;
-    NSDictionary *configDict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
-    if (error) {
-        NSLog(@"Failed to parse config JSON: %@", error.localizedDescription);
-        return false;
-    }
-    
+bool SausageReplaySDK_StartRecording(void) {
     // 创建Unity回调
     if (!_unityCallback) {
         _unityCallback = [[SRUnityRecordingCallback alloc] init];
