@@ -29,11 +29,7 @@
 @property (nonatomic, assign) NSTimeInterval startTime;
 @property (nonatomic, assign) BOOL isPaused;
 @property (nonatomic, assign) BOOL hasStartedWriterSession;
-@property (nonatomic, strong) dispatch_queue_t writerQueue;
-@property (nonatomic, strong) NSMutableArray* pendingVideo;
-@property (nonatomic, strong) NSMutableArray* pendingAudio;
-@property (nonatomic, assign) BOOL isDrainingVideo;
-@property (nonatomic, assign) BOOL isDrainingAudio;
+// 直接追加写入，不使用队列式 draining，避免状态0时机问题
 
 @end
 
@@ -58,11 +54,6 @@ static SRRecordingManager *_sharedInstance = nil;
         _screenRecorder.delegate = self;
         _isPaused = NO;
         _hasStartedWriterSession = NO;
-        _writerQueue = dispatch_queue_create("com.funny.replaysdk.writer", DISPATCH_QUEUE_SERIAL);
-        _pendingVideo = [NSMutableArray array];
-        _pendingAudio = [NSMutableArray array];
-        _isDrainingVideo = NO;
-        _isDrainingAudio = NO;
     }
     return self;
 }
@@ -293,13 +284,10 @@ static SRRecordingManager *_sharedInstance = nil;
                 CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
-                // 会话建立后再尝试启动队列写入
-                [self startDrainVideoIfNeeded];
             }
-            if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                CFRetain(sampleBuffer);
-                [self.pendingVideo addObject:(__bridge id)sampleBuffer];
-                [self startDrainVideoIfNeeded];
+            if (self.videoInput && self.videoInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+                BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
+                if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
             }
             break;
         case RPSampleBufferTypeAudioApp:
@@ -307,48 +295,13 @@ static SRRecordingManager *_sharedInstance = nil;
             // 仅在视频会话已启动后写入音频，保证时间线一致
             if (self.hasStartedWriterSession) {
                 [self ensureAudioInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
-                if (self.audioInput && CMSampleBufferDataIsReady(sampleBuffer)) {
-                    CFRetain(sampleBuffer);
-                    [self.pendingAudio addObject:(__bridge id)sampleBuffer];
-                    [self startDrainAudioIfNeeded];
+                if (self.audioInput && self.audioInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+                    BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
+                    if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
                 }
             }
             break;
     }
-}
-
-- (void)startDrainVideoIfNeeded {
-    if (self.isDrainingVideo || !self.videoInput) return;
-    if (!self.hasStartedWriterSession || self.assetWriter.status != AVAssetWriterStatusWriting) return;
-    self.isDrainingVideo = YES;
-    __weak typeof(self) weakSelf = self;
-    [self.videoInput requestMediaDataWhenReadyOnQueue:self.writerQueue usingBlock:^{
-        while (weakSelf.videoInput.isReadyForMoreMediaData) {
-            if (weakSelf.pendingVideo.count == 0) { weakSelf.isDrainingVideo = NO; break; }
-            CMSampleBufferRef sbuf = (__bridge_retained CMSampleBufferRef)weakSelf.pendingVideo.firstObject;
-            [weakSelf.pendingVideo removeObjectAtIndex:0];
-            BOOL ok = [weakSelf.videoInput appendSampleBuffer:sbuf];
-            CFRelease(sbuf);
-            if (!ok) { NSLog(@"append video failed: %@", weakSelf.assetWriter.error.localizedDescription); }
-        }
-    }];
-}
-
-- (void)startDrainAudioIfNeeded {
-    if (self.isDrainingAudio || !self.audioInput) return;
-    if (!self.hasStartedWriterSession || self.assetWriter.status != AVAssetWriterStatusWriting) return;
-    self.isDrainingAudio = YES;
-    __weak typeof(self) weakSelf = self;
-    [self.audioInput requestMediaDataWhenReadyOnQueue:self.writerQueue usingBlock:^{
-        while (weakSelf.audioInput.isReadyForMoreMediaData) {
-            if (weakSelf.pendingAudio.count == 0) { weakSelf.isDrainingAudio = NO; break; }
-            CMSampleBufferRef sbuf = (__bridge_retained CMSampleBufferRef)weakSelf.pendingAudio.firstObject;
-            [weakSelf.pendingAudio removeObjectAtIndex:0];
-            BOOL ok = [weakSelf.audioInput appendSampleBuffer:sbuf];
-            CFRelease(sbuf);
-            if (!ok) { NSLog(@"append audio failed: %@", weakSelf.assetWriter.error.localizedDescription); }
-        }
-    }];
 }
 
 - (void)stopRecording:(void(^)(SRRecordingResult *result))callback {
@@ -682,10 +635,6 @@ static SRRecordingManager *_sharedInstance = nil;
     self.recordingCallback = nil;
     self.isPaused = NO;
     self.hasStartedWriterSession = NO;
-    [self.pendingVideo removeAllObjects];
-    [self.pendingAudio removeAllObjects];
-    self.isDrainingVideo = NO;
-    self.isDrainingAudio = NO;
     self.currentStatus = SRRecordingStatusIdle;  // 重置状态为空闲
 }
 
