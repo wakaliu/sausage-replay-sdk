@@ -293,6 +293,8 @@ static SRRecordingManager *_sharedInstance = nil;
                 CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
+                // 会话建立后再尝试启动队列写入
+                [self startDrainVideoIfNeeded];
             }
             if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer)) {
                 CFRetain(sampleBuffer);
@@ -317,6 +319,7 @@ static SRRecordingManager *_sharedInstance = nil;
 
 - (void)startDrainVideoIfNeeded {
     if (self.isDrainingVideo || !self.videoInput) return;
+    if (!self.hasStartedWriterSession || self.assetWriter.status != AVAssetWriterStatusWriting) return;
     self.isDrainingVideo = YES;
     __weak typeof(self) weakSelf = self;
     [self.videoInput requestMediaDataWhenReadyOnQueue:self.writerQueue usingBlock:^{
@@ -333,6 +336,7 @@ static SRRecordingManager *_sharedInstance = nil;
 
 - (void)startDrainAudioIfNeeded {
     if (self.isDrainingAudio || !self.audioInput) return;
+    if (!self.hasStartedWriterSession || self.assetWriter.status != AVAssetWriterStatusWriting) return;
     self.isDrainingAudio = YES;
     __weak typeof(self) weakSelf = self;
     [self.audioInput requestMediaDataWhenReadyOnQueue:self.writerQueue usingBlock:^{
