@@ -367,8 +367,14 @@ static SRRecordingManager *_sharedInstance = nil;
     
     // 仅当 writer 正在写入且已启动会话时才结束写入
     if (self.assetWriter && self.assetWriter.status == AVAssetWriterStatusWriting && self.hasStartedWriterSession) {
-        if (self.videoInput) { [self.videoInput markAsFinished]; }
-        if (self.audioInput) { [self.audioInput markAsFinished]; }
+        if (self.videoInput) {
+            @try { [self.videoInput markAsFinished]; }
+            @catch (NSException *e) { NSLog(@"markAsFinished(video) skipped: %@", e.reason); }
+        }
+        if (self.audioInput) {
+            @try { [self.audioInput markAsFinished]; }
+            @catch (NSException *e) { NSLog(@"markAsFinished(audio) skipped: %@", e.reason); }
+        }
     } else {
         // 未开始写入（可能用户秒停或无首帧），直接返回失败结果
         SRRecordingResult *result = [SRRecordingResult failureWithErrorCode:2006 errorMessage:@"Writer not started or no frames captured"];
