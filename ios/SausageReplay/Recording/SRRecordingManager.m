@@ -137,10 +137,10 @@ static SRRecordingManager *_sharedInstance = nil;
 
 - (void)setupAssetWriterWithConfig:(SRRecordingConfig *)config
                         completion:(void(^)(BOOL success, NSError *error))completion {
-    // 创建输出文件路径
+    // 创建输出文件路径（使用临时目录，后续保存到相册后删除，不在沙盒长期保留）
     NSString *fileName = [NSString stringWithFormat:@"replay_%ld.mp4", (long)[[NSDate date] timeIntervalSince1970]];
-    NSURL *documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] firstObject];
-    NSURL *outputURL = [documentsURL URLByAppendingPathComponent:fileName];
+    NSString *tempDir = NSTemporaryDirectory();
+    NSURL *outputURL = [NSURL fileURLWithPath:[tempDir stringByAppendingPathComponent:fileName]];
     self.outputURL = outputURL;
     
     // 删除已存在的文件
@@ -320,14 +320,23 @@ static SRRecordingManager *_sharedInstance = nil;
             [self finishWritingWithCallback:^(SRRecordingResult *result) {
                 // 保存到相册
                 [self saveOutputToPhotoLibrary:self.outputURL completion:^(BOOL success, NSString * _Nullable localId, NSError * _Nullable err) {
-                    if (success) {
-                        if (self.recordingCallback) { [self.recordingCallback onRecordingStopped:result]; }
-                        if (callback) { callback(result); }
-                    } else {
-                        NSLog(@"⚠️ Save to photos failed: %@", err.localizedDescription);
-                        if (self.recordingCallback) { [self.recordingCallback onRecordingStopped:result]; }
-                        if (callback) { callback(result); }
+                    // 无论成败，删除临时文件，避免在沙盒中保留
+                    if (self.outputURL) {
+                        [[NSFileManager defaultManager] removeItemAtURL:self.outputURL error:nil];
                     }
+
+                    // 回调时不返回本地沙盒路径
+                    SRRecordingResult *finalResult = [[SRRecordingResult alloc] init];
+                    finalResult.isSuccess = result.isSuccess && success;
+                    finalResult.filePath = nil; // 不返回沙盒路径
+                    finalResult.fileSize = result.fileSize;
+                    finalResult.duration = result.duration;
+                    finalResult.errorCode = success ? 0 : 1203;
+                    finalResult.errorMessage = success ? nil : (err.localizedDescription ?: @"Save to Photos failed");
+
+                    if (self.recordingCallback) { [self.recordingCallback onRecordingStopped:finalResult]; }
+                    if (callback) { callback(finalResult); }
+
                     [self cleanup];
                 }];
             } error:nil];

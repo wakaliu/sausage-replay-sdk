@@ -374,10 +374,7 @@
             self.isRecording = NO;
             
             if (result.isSuccess) {
-                [self addLog:@"✅ 录制停止成功（已自动保存到相册）"]; 
-                if (result.filePath) {
-                    [self addLog:[NSString stringWithFormat:@"沙盒文件路径: %@", result.filePath]];
-                }
+                [self addLog:@"✅ 录制停止成功（已保存到相册，不保留沙盒文件）"]; 
                 [self addLog:[NSString stringWithFormat:@"文件大小(估算): %.2f MB", result.fileSize / 1024.0 / 1024.0]];
                 [self addLog:[NSString stringWithFormat:@"录制时长: %.2f 秒", result.duration]];
             } else {
@@ -428,13 +425,10 @@
     [self addLog:@"🛑 录制停止回调"];
     
     if (result.isSuccess) {
-        if (result.filePath) {
-            self.lastRecordedVideoPath = result.filePath;
-            [self addLog:[NSString stringWithFormat:@"📁 录制文件(沙盒): %@", result.filePath]];
-        }
+        self.lastRecordedVideoPath = nil; // 不再保留沙盒路径
         [self addLog:[NSString stringWithFormat:@"📊 文件大小(估算): %.2f MB, 时长: %.1f秒", 
                       result.fileSize / 1024.0 / 1024.0, result.duration]];
-        [self addLog:@"📱 已自动尝试保存到系统相册"];
+        [self addLog:@"📱 已保存到系统相册"];
     } else {
         [self addLog:[NSString stringWithFormat:@"❌ 录制失败: %@", result.errorMessage ?: @"未知错误"]];
     }
