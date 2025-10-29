@@ -285,7 +285,7 @@ static SRRecordingManager *_sharedInstance = nil;
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
             }
-            if (self.videoInput && self.videoInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+            if (self.videoInput && CMSampleBufferDataIsReady(sampleBuffer)) {
                 BOOL ok = [self.videoInput appendSampleBuffer:sampleBuffer];
                 if (!ok) NSLog(@"append video failed: %@", self.assetWriter.error.localizedDescription);
             }
@@ -295,7 +295,7 @@ static SRRecordingManager *_sharedInstance = nil;
             // 仅在视频会话已启动后写入音频，保证时间线一致
             if (self.hasStartedWriterSession) {
                 [self ensureAudioInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
-                if (self.audioInput && self.audioInput.readyForMoreMediaData && CMSampleBufferDataIsReady(sampleBuffer)) {
+                if (self.audioInput && CMSampleBufferDataIsReady(sampleBuffer)) {
                     BOOL ok = [self.audioInput appendSampleBuffer:sampleBuffer];
                     if (!ok) NSLog(@"append audio failed: %@", self.assetWriter.error.localizedDescription);
                 }
