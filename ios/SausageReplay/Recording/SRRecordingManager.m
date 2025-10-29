@@ -187,13 +187,6 @@ static SRRecordingManager *_sharedInstance = nil;
     self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings];
     self.videoInput.expectsMediaDataInRealTime = YES;
 
-    NSDictionary *pixelBufferAttributes = @{
-        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
-        (NSString *)kCVPixelBufferWidthKey: @(width),
-        (NSString *)kCVPixelBufferHeightKey: @(height)
-    };
-    self.pixelBufferAdaptor = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:self.videoInput sourcePixelBufferAttributes:pixelBufferAttributes];
-
     if ([self.assetWriter canAddInput:self.videoInput]) {
         [self.assetWriter addInput:self.videoInput];
     }
@@ -279,10 +272,7 @@ static SRRecordingManager *_sharedInstance = nil;
                 self.hasStartedWriterSession = YES;
             }
             if (self.videoInput && self.videoInput.readyForMoreMediaData) {
-                CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-                if (pixelBuffer && self.pixelBufferAdaptor) {
-                    [self.pixelBufferAdaptor appendPixelBuffer:pixelBuffer withPresentationTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
-                }
+                [self.videoInput appendSampleBuffer:sampleBuffer];
             }
             break;
         case RPSampleBufferTypeAudioApp:
@@ -328,8 +318,8 @@ static SRRecordingManager *_sharedInstance = nil;
             [self finishWritingWithCallback:^(SRRecordingResult *result) {
                 // 保存到相册
                 [self saveOutputToPhotoLibrary:self.outputURL completion:^(BOOL success, NSString * _Nullable localId, NSError * _Nullable err) {
-                    // 无论成败，删除临时文件，避免在沙盒中保留
-                    if (self.outputURL) {
+                    // 成功后删除临时文件；失败则保留以便排查
+                    if (success && self.outputURL) {
                         [[NSFileManager defaultManager] removeItemAtURL:self.outputURL error:nil];
                     }
 
