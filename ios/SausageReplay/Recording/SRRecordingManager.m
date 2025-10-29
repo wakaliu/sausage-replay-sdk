@@ -28,6 +28,7 @@
 @property (nonatomic, strong) NSTimer *progressTimer;
 @property (nonatomic, assign) NSTimeInterval startTime;
 @property (nonatomic, assign) BOOL isPaused;
+@property (nonatomic, assign) BOOL hasStartedWriterSession;
 
 @end
 
@@ -51,6 +52,7 @@ static SRRecordingManager *_sharedInstance = nil;
         _screenRecorder = [RPScreenRecorder sharedRecorder];
         _screenRecorder.delegate = self;
         _isPaused = NO;
+        _hasStartedWriterSession = NO;
     }
     return self;
 }
@@ -161,10 +163,9 @@ static SRRecordingManager *_sharedInstance = nil;
         [self setupAudioInputWithConfig:config];
     }
     
-    // 开始写入
+    // 开始写入（会话在首帧视频到来时用其时间戳启动，避免白屏）
     if ([self.assetWriter startWriting]) {
-        // 开始会话，设置起始时间
-        [self.assetWriter startSessionAtSourceTime:kCMTimeZero];
+        self.hasStartedWriterSession = NO;
         completion(YES, nil);
     } else {
         completion(NO, self.assetWriter.error);
@@ -270,21 +271,30 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    // 确保AssetWriter已经开始了会话
+    // 确保AssetWriter处于写入状态
     if (self.assetWriter.status != AVAssetWriterStatusWriting) {
         return;
     }
     
     switch (bufferType) {
         case RPSampleBufferTypeVideo:
+            // 在首帧视频到达时，用其时间戳启动会话，避免起始时间不对导致黑/白屏
+            if (!self.hasStartedWriterSession) {
+                CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+                [self.assetWriter startSessionAtSourceTime:pts];
+                self.hasStartedWriterSession = YES;
+            }
             if (self.videoInput && self.videoInput.readyForMoreMediaData) {
                 [self.videoInput appendSampleBuffer:sampleBuffer];
             }
             break;
         case RPSampleBufferTypeAudioApp:
         case RPSampleBufferTypeAudioMic:
-            if (self.audioInput && self.audioInput.readyForMoreMediaData) {
-                [self.audioInput appendSampleBuffer:sampleBuffer];
+            // 仅在视频会话已启动后写入音频，保证时间线一致
+            if (self.hasStartedWriterSession) {
+                if (self.audioInput && self.audioInput.readyForMoreMediaData) {
+                    [self.audioInput appendSampleBuffer:sampleBuffer];
+                }
             }
             break;
     }
