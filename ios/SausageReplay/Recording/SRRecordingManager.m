@@ -155,13 +155,7 @@ static SRRecordingManager *_sharedInstance = nil;
         return;
     }
     
-    // 配置视频输入
-    [self setupVideoInputWithConfig:config];
-    
-    // 配置音频输入
-    if (config.includeAudio) {
-        [self setupAudioInputWithConfig:config];
-    }
+    // 输入改为懒创建：在收到首帧时根据真实尺寸/格式创建，避免变形
     
     // 开始写入（会话在首帧视频到来时用其时间戳启动，避免白屏）
     if ([self.assetWriter startWriting]) {
@@ -172,52 +166,50 @@ static SRRecordingManager *_sharedInstance = nil;
     }
 }
 
-- (void)setupVideoInputWithConfig:(SRRecordingConfig *)config {
-    // 根据视频清晰度档位计算视频参数
-    CGSize videoSize = [self calculateVideoSizeForPreset:config.qualityPreset];
+// 基于首帧动态创建视频输入，尺寸与像素格式与源一致，避免拉伸
+- (void)ensureVideoInputFromSampleBuffer:(CMSampleBufferRef)sampleBuffer config:(SRRecordingConfig *)config {
+    if (self.videoInput) return;
+    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+    if (!imageBuffer) return;
+    size_t width = CVPixelBufferGetWidth(imageBuffer);
+    size_t height = CVPixelBufferGetHeight(imageBuffer);
     NSInteger bitrate = [self calculateBitrateForPreset:config.qualityPreset];
-    
+
     NSDictionary *videoSettings = @{
         AVVideoCodecKey: AVVideoCodecTypeH264,
-        AVVideoWidthKey: @(videoSize.width),
-        AVVideoHeightKey: @(videoSize.height),
+        AVVideoWidthKey: @(width),
+        AVVideoHeightKey: @(height),
         AVVideoCompressionPropertiesKey: @{
             AVVideoAverageBitRateKey: @(bitrate),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264MainAutoLevel,
-            AVVideoMaxKeyFrameIntervalKey: @(30 * 2) // GOP = 2秒，默认30fps
         }
     };
-    
     self.videoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings];
     self.videoInput.expectsMediaDataInRealTime = YES;
-    
-    // 创建像素缓冲区适配器
+
     NSDictionary *pixelBufferAttributes = @{
         (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
-        (NSString *)kCVPixelBufferWidthKey: @(videoSize.width),
-        (NSString *)kCVPixelBufferHeightKey: @(videoSize.height)
+        (NSString *)kCVPixelBufferWidthKey: @(width),
+        (NSString *)kCVPixelBufferHeightKey: @(height)
     };
-    
-    self.pixelBufferAdaptor = [AVAssetWriterInputPixelBufferAdaptor
-                              assetWriterInputPixelBufferAdaptorWithAssetWriterInput:self.videoInput
-                              sourcePixelBufferAttributes:pixelBufferAttributes];
-    
+    self.pixelBufferAdaptor = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:self.videoInput sourcePixelBufferAttributes:pixelBufferAttributes];
+
     if ([self.assetWriter canAddInput:self.videoInput]) {
         [self.assetWriter addInput:self.videoInput];
     }
 }
 
-- (void)setupAudioInputWithConfig:(SRRecordingConfig *)config {
+// 懒创建音频输入
+- (void)ensureAudioInputWithConfig:(SRRecordingConfig *)config {
+    if (self.audioInput || !config.includeAudio) return;
     NSDictionary *audioSettings = @{
         AVFormatIDKey: @(kAudioFormatMPEG4AAC),
         AVSampleRateKey: @(48000),
         AVNumberOfChannelsKey: @(2),
         AVEncoderBitRateKey: @(128000)
     };
-    
     self.audioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio outputSettings:audioSettings];
     self.audioInput.expectsMediaDataInRealTime = YES;
-    
     if ([self.assetWriter canAddInput:self.audioInput]) {
         [self.assetWriter addInput:self.audioInput];
     }
@@ -278,20 +270,26 @@ static SRRecordingManager *_sharedInstance = nil;
     
     switch (bufferType) {
         case RPSampleBufferTypeVideo:
-            // 在首帧视频到达时，用其时间戳启动会话，避免起始时间不对导致黑/白屏
+            // 确保视频输入按首帧尺寸创建
+            [self ensureVideoInputFromSampleBuffer:sampleBuffer config:self.currentConfig];
+            // 在首帧视频到达时，用其时间戳启动会话
             if (!self.hasStartedWriterSession) {
                 CMTime pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
                 [self.assetWriter startSessionAtSourceTime:pts];
                 self.hasStartedWriterSession = YES;
             }
             if (self.videoInput && self.videoInput.readyForMoreMediaData) {
-                [self.videoInput appendSampleBuffer:sampleBuffer];
+                CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+                if (pixelBuffer && self.pixelBufferAdaptor) {
+                    [self.pixelBufferAdaptor appendPixelBuffer:pixelBuffer withPresentationTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
+                }
             }
             break;
         case RPSampleBufferTypeAudioApp:
         case RPSampleBufferTypeAudioMic:
             // 仅在视频会话已启动后写入音频，保证时间线一致
             if (self.hasStartedWriterSession) {
+                [self ensureAudioInputWithConfig:self.currentConfig];
                 if (self.audioInput && self.audioInput.readyForMoreMediaData) {
                     [self.audioInput appendSampleBuffer:sampleBuffer];
                 }
