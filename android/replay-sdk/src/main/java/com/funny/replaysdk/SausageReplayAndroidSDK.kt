@@ -129,63 +129,6 @@ object SausageReplayAndroidSDK {
     fun isCpuOptimizationEnabled(): Boolean {
         return StateHolder.enableCpuOptimization
     }
-    
-    // ========== 动态质量调节相关API ==========
-    
-    /**
-     * 设置是否启用动态质量调节
-     * @param enabled true启用动态质量调节，false禁用
-     * @return 是否设置成功
-     */
-    @JvmStatic
-    fun setDynamicQualityEnabled(enabled: Boolean): Boolean {
-        return try {
-            StateHolder.enableDynamicQuality = enabled
-            android.util.Log.d("SausageReplayAndroidSDK", "Dynamic quality adjustment ${if (enabled) "enabled" else "disabled"}")
-            true
-        } catch (e: Exception) {
-            android.util.Log.e("SausageReplayAndroidSDK", "Failed to set dynamic quality: ${e.message}")
-            false
-        }
-    }
-    
-    /**
-     * 获取当前动态质量调节状态
-     * @return true表示启用动态质量调节，false表示禁用
-     */
-    @JvmStatic
-    fun isDynamicQualityEnabled(): Boolean {
-        return StateHolder.enableDynamicQuality
-    }
-    
-    /**
-     * 获取当前质量降低系数
-     * @return 质量系数 (1.0 = 100%, 0.5 = 50%)
-     */
-    @JvmStatic
-    fun getCurrentQualityReduction(): Float {
-        return StateHolder.currentQualityReduction
-    }
-    
-    /**
-     * 手动触发性能检查和质量调节
-     * @return 是否成功执行
-     */
-    @JvmStatic
-    fun triggerPerformanceCheck(): Boolean {
-        return try {
-            if (StateHolder.status.get() == RecordingStatus.RECORDING) {
-                performDynamicQualityAdjustment()
-                true
-            } else {
-                android.util.Log.w("SausageReplayAndroidSDK", "Not recording, skipping performance check")
-                false
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("SausageReplayAndroidSDK", "Failed to trigger performance check: ${e.message}")
-            false
-        }
-    }
 
     @JvmStatic
     fun release() {
@@ -503,20 +446,26 @@ object RecordingManager {
             try {
                 // 使用设备档位管理器计算录制参数
                 val metrics = ctx.resources.displayMetrics
-                val baseParams = DeviceTierManager.calculateRecordingParams(
+                val recordingParams = DeviceTierManager.calculateRecordingParams(
                     metrics, 
                     config.quality, 
                     config.targetBitrate?.toLong(), 
                     config.targetFps
                 )
                 
-                // 应用动态质量调节
-                val recordingParams = applyDynamicQualityAdjustment(baseParams)
-                
                 android.util.Log.d("RecordingManager", "Recording params: $recordingParams")
 
-                // 创建优化的MediaRecorder，优先使用硬件编码器
-                val recorder = createOptimizedMediaRecorder(config, recordingParams, output.absolutePath)
+                val recorder = MediaRecorder()
+                recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
+                if (config.includeAudio) {
+                    recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+                }
+                recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                recorder.setOutputFile(output.absolutePath)
+                recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+                recorder.setVideoFrameRate(recordingParams.fps)
+                recorder.setVideoEncodingBitRate(recordingParams.videoBitrate.toInt())
+                recorder.setVideoSize(recordingParams.resolution.width, recordingParams.resolution.height)
 
                 // 捕获底层错误，避免 native 崩溃扩散
                 recorder.setOnErrorListener { _, what, extra ->
@@ -551,8 +500,8 @@ object RecordingManager {
                     recorder.setAudioEncodingBitRate(recordingParams.audioBitrate.toInt())
                 }
                 
-                // 尝试设置高质量编码参数（Android 8.0+）
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                // 尝试设置高质量编码参数（Android 7.0+）
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                     try {
                         // 设置编码配置文件
                         when (recordingParams.encodingProfile) {
@@ -620,17 +569,14 @@ object RecordingManager {
                 StateHolder.outputFile = output
                 StateHolder.status.set(RecordingStatus.RECORDING)
                 
-                // 启动性能监控（如果启用动态质量调节）
-                if (StateHolder.enableDynamicQuality) {
-                    startPerformanceMonitoring()
-                }
+                // 性能监控不再自动启动，用户需要时手动启动
                 
                 // 取消启动超时定时器
                 StateHolder.mainHandler.removeCallbacksAndMessages(TIMEOUT_TOKEN)
                 // 安排最大时长自动停止
                 scheduleMaxDuration(config.maxDurationSeconds)
                 // 启动进度监控
-                startProgressMonitoringInternal()
+                startProgressMonitoring()
                 // 通知录制开始
                 StateHolder.mainHandler.post {
                     try {
@@ -927,9 +873,9 @@ object RecordingManager {
     
     
     /**
-     * 开始进度监控（内部实现）
+     * 开始进度监控
      */
-    private fun startProgressMonitoringInternal() {
+    private fun startProgressMonitoring() {
         val startTime = System.currentTimeMillis()
         val progressRunnable = object : Runnable {
             override fun run() {
@@ -969,177 +915,6 @@ object RecordingManager {
         StateHolder.mainHandler.post(progressRunnable)
     }
 
-    /**
-     * Unity/JNI 调用的静态桥接方法：开始进度监控
-     * @return 是否成功
-     */
-    @JvmStatic
-    fun startProgressMonitoring(): Boolean {
-        return try {
-            startProgressMonitoringInternal()
-            true
-        } catch (t: Throwable) {
-            android.util.Log.e("RecordingManager", "Failed to start progress monitoring", t)
-            false
-        }
-    }
-
-}
-
-/**
- * 应用动态质量调节到录制参数
- */
-private fun applyDynamicQualityAdjustment(baseParams: RecordingParams): RecordingParams {
-    if (!StateHolder.enableDynamicQuality || StateHolder.currentQualityReduction >= 1.0f) {
-        return baseParams
-    }
-    
-    val reductionFactor = StateHolder.currentQualityReduction
-    
-    return baseParams.copy(
-        // 降低比特率
-        videoBitrate = (baseParams.videoBitrate * reductionFactor).toLong(),
-        // 降低分辨率（如果质量降低超过30%）
-        resolution = if (reductionFactor < 0.7f) {
-            Resolution(
-                width = (baseParams.resolution.width * 0.8f).toInt(),
-                height = (baseParams.resolution.height * 0.8f).toInt()
-            )
-        } else {
-            baseParams.resolution
-        },
-        // 降低帧率（如果质量降低超过50%）
-        fps = if (reductionFactor < 0.5f) {
-            (baseParams.fps * 0.8f).toInt().coerceAtLeast(15)
-        } else {
-            baseParams.fps
-        }
-    )
-}
-
-/**
- * 启动性能监控
- */
-private fun startPerformanceMonitoring() {
-    val performanceRunnable = object : Runnable {
-        override fun run() {
-            val currentStatus = StateHolder.status.get()
-            if (currentStatus == RecordingStatus.RECORDING) {
-                // 执行动态质量调节
-                performDynamicQualityAdjustment()
-                // 每5秒检查一次
-                StateHolder.mainHandler.postDelayed(this, 5000)
-            } else {
-                // 录制结束，停止性能监控
-                android.util.Log.d("RecordingManager", "Performance monitoring stopped, status=$currentStatus")
-            }
-        }
-    }
-    StateHolder.mainHandler.post(performanceRunnable)
-}
-
-/**
- * 执行动态质量调节
- */
-private fun performDynamicQualityAdjustment() {
-    if (!StateHolder.enableDynamicQuality) {
-        return
-    }
-    
-    val currentTime = System.currentTimeMillis()
-    // 每5秒检查一次性能
-    if (currentTime - StateHolder.lastPerformanceCheck < 5000) {
-        return
-    }
-    StateHolder.lastPerformanceCheck = currentTime
-    
-    try {
-        val cpuUsage = getCpuUsage()
-        val memoryUsage = getMemoryUsage()
-        
-        android.util.Log.d("RecordingManager", "Performance check - CPU: ${cpuUsage}%, Memory: ${memoryUsage}%")
-        
-        when {
-            cpuUsage > 85 || memoryUsage > 90 -> {
-                // 性能严重不足，大幅降低质量
-                reduceQuality(0.3f, "High CPU/Memory usage")
-            }
-            cpuUsage > 70 || memoryUsage > 80 -> {
-                // 性能不足，适度降低质量
-                reduceQuality(0.6f, "Moderate CPU/Memory usage")
-            }
-            cpuUsage < 50 && memoryUsage < 60 && StateHolder.currentQualityReduction < 1.0f -> {
-                // 性能良好，尝试恢复质量
-                restoreQuality(0.1f, "Good performance")
-            }
-        }
-    } catch (e: Exception) {
-        android.util.Log.w("RecordingManager", "Failed to perform dynamic quality adjustment: ${e.message}")
-    }
-}
-
-/**
- * 降低录制质量
- */
-private fun reduceQuality(reductionFactor: Float, reason: String) {
-    val newReduction = (StateHolder.currentQualityReduction * reductionFactor).coerceAtLeast(0.3f)
-    if (newReduction < StateHolder.currentQualityReduction) {
-        StateHolder.currentQualityReduction = newReduction
-        android.util.Log.i("RecordingManager", "Quality reduced to ${(newReduction * 100).toInt()}% - $reason")
-        
-        // 通知回调
-        StateHolder.mainHandler.post {
-            StateHolder.recordingCallback?.onRecordingQualityAdjusted(VideoQuality.MEDIUM)
-        }
-    }
-}
-
-/**
- * 恢复录制质量
- */
-private fun restoreQuality(restoreFactor: Float, reason: String) {
-    val newReduction = (StateHolder.currentQualityReduction + restoreFactor).coerceAtMost(1.0f)
-    if (newReduction > StateHolder.currentQualityReduction) {
-        StateHolder.currentQualityReduction = newReduction
-        android.util.Log.i("RecordingManager", "Quality restored to ${(newReduction * 100).toInt()}% - $reason")
-        
-        // 通知回调
-        StateHolder.mainHandler.post {
-            StateHolder.recordingCallback?.onRecordingQualityAdjusted(VideoQuality.HIGH)
-        }
-    }
-}
-
-/**
- * 获取CPU使用率
- */
-private fun getCpuUsage(): Int {
-    return try {
-        val runtime = Runtime.getRuntime()
-        val totalMemory = runtime.totalMemory()
-        val freeMemory = runtime.freeMemory()
-        val usedMemory = totalMemory - freeMemory
-        ((usedMemory.toFloat() / totalMemory.toFloat()) * 100).toInt()
-    } catch (e: Exception) {
-        android.util.Log.w("RecordingManager", "Failed to get CPU usage: ${e.message}")
-        50 // 默认值
-    }
-}
-
-/**
- * 获取内存使用率
- */
-private fun getMemoryUsage(): Int {
-    return try {
-        val runtime = Runtime.getRuntime()
-        val totalMemory = runtime.totalMemory()
-        val freeMemory = runtime.freeMemory()
-        val usedMemory = totalMemory - freeMemory
-        ((usedMemory.toFloat() / totalMemory.toFloat()) * 100).toInt()
-    } catch (e: Exception) {
-        android.util.Log.w("RecordingManager", "Failed to get memory usage: ${e.message}")
-        50 // 默认值
-    }
 }
 
 
@@ -1170,11 +945,6 @@ private object StateHolder {
     // CPU优化配置：是否启用录制线程CPU小核绑定
     var enableCpuOptimization: Boolean = true
     
-    // 动态质量调节配置
-    var enableDynamicQuality: Boolean = true
-    var currentQualityReduction: Float = 1.0f // 当前质量降低系数 (1.0 = 100%, 0.5 = 50%)
-    var lastPerformanceCheck: Long = 0L
-    
     // 工作线程和任务队列
     val recordingWorker: RecordingWorker by lazy { RecordingWorker() }
     
@@ -1202,8 +972,8 @@ private class RecordingWorker {
     private var isQuit = false
     
     /**
-     * 将录制线程绑定到CPU小核，避免影响游戏性能
-     * 使用最低优先级和批处理调度策略
+     * 将录制线程绑定到CPU小核，避免影响UI性能
+     * 使用Android Process API设置线程调度策略
      */
     private fun bindToSmallCores() {
         // 检查是否启用CPU优化
@@ -1213,11 +983,12 @@ private class RecordingWorker {
         }
         
         try {
-            // 设置线程优先级为最低级别，确保不影响游戏性能
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LOWEST)
-            android.util.Log.d("RecordingWorker", "Recording thread priority set to lowest")
+            val tid = android.os.Process.myTid()
+            // 设置线程调度策略为SCHED_OTHER，优先使用小核
+            android.os.Process.setThreadScheduler(tid, android.os.Process.SCHED_OTHER, 0)
+            android.util.Log.d("RecordingWorker", "Recording thread bound to small cores, tid=$tid")
         } catch (e: Exception) {
-            android.util.Log.w("RecordingWorker", "Failed to set recording thread priority: ${e.message}")
+            android.util.Log.w("RecordingWorker", "Failed to bind recording thread to small cores: ${e.message}")
         }
     }
     
@@ -1284,132 +1055,6 @@ private fun buildOutputFile(context: Context): File {
     return outputFile
 }
 
-/**
- * 创建优化的MediaRecorder，优先使用硬件编码器
- */
-private fun createOptimizedMediaRecorder(config: RecordingConfig, recordingParams: RecordingParams, outputPath: String): MediaRecorder {
-    val recorder = MediaRecorder()
-    
-    try {
-        // 设置视频源
-        recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-        
-        // 设置音频源（如果需要）
-        if (config.includeAudio) {
-            recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-        }
-        
-        // 设置输出格式
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-        recorder.setOutputFile(outputPath)
-        
-        // 优先使用硬件编码器
-        val videoEncoder = selectOptimalVideoEncoder()
-        recorder.setVideoEncoder(videoEncoder)
-        android.util.Log.d("RecordingManager", "Using video encoder: $videoEncoder")
-        
-        // 设置视频参数
-        recorder.setVideoFrameRate(recordingParams.fps)
-        recorder.setVideoEncodingBitRate(recordingParams.videoBitrate.toInt())
-        recorder.setVideoSize(recordingParams.resolution.width, recordingParams.resolution.height)
-        
-        // 设置音频参数（如果需要）
-        if (config.includeAudio) {
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            recorder.setAudioEncodingBitRate(128000) // 128kbps
-            recorder.setAudioSamplingRate(44100)
-        }
-        
-        // 设置关键帧间隔，提升视频质量
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            try {
-                val method = MediaRecorder::class.java.getMethod("setVideoEncodingIFrameInterval", Int::class.javaPrimitiveType)
-                method.invoke(recorder, recordingParams.keyFrameInterval)
-                android.util.Log.d("RecordingManager", "Set I-frame interval to ${recordingParams.keyFrameInterval}")
-            } catch (e: Exception) {
-                android.util.Log.w("RecordingManager", "Failed to set I-frame interval: ${e.message}")
-            }
-        }
-        
-        // 尝试设置硬件编码器特定参数
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            try {
-                // 设置编码配置文件（硬件编码器优化）
-                val method = MediaRecorder::class.java.getMethod("setVideoEncodingProfile", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
-                method.invoke(recorder, android.media.MediaCodecInfo.CodecProfileLevel.AVCProfileMain, 
-                    android.media.MediaCodecInfo.CodecProfileLevel.AVCLevel31)
-                android.util.Log.d("RecordingManager", "Set hardware encoding profile")
-            } catch (e: Exception) {
-                android.util.Log.w("RecordingManager", "Failed to set encoding profile: ${e.message}")
-            }
-        }
-        
-    } catch (e: Exception) {
-        android.util.Log.e("RecordingManager", "Failed to configure MediaRecorder: ${e.message}")
-        throw e
-    }
-    
-    return recorder
-}
-
-/**
- * 选择最优的视频编码器，优先使用硬件编码器
- */
-private fun selectOptimalVideoEncoder(): Int {
-    return try {
-        // 优先尝试H.264硬件编码器
-        if (isHardwareEncoderSupported(MediaRecorder.VideoEncoder.H264)) {
-            android.util.Log.d("RecordingManager", "Using H.264 hardware encoder")
-            MediaRecorder.VideoEncoder.H264
-        }
-        // 尝试HEVC硬件编码器（Android 5.0+）
-        else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && 
-                 isHardwareEncoderSupported(MediaRecorder.VideoEncoder.HEVC)) {
-            android.util.Log.d("RecordingManager", "Using HEVC hardware encoder")
-            MediaRecorder.VideoEncoder.HEVC
-        }
-        // 回退到H.264软件编码器
-        else {
-            android.util.Log.d("RecordingManager", "Using H.264 software encoder")
-            MediaRecorder.VideoEncoder.H264
-        }
-    } catch (e: Exception) {
-        android.util.Log.w("RecordingManager", "Failed to select optimal encoder, using default: ${e.message}")
-        MediaRecorder.VideoEncoder.H264
-    }
-}
-
-/**
- * 检查硬件编码器是否支持
- */
-private fun isHardwareEncoderSupported(encoder: Int): Boolean {
-    return try {
-        val codecList = android.media.MediaCodecList(android.media.MediaCodecList.ALL_CODECS)
-        val codecInfos = codecList.codecInfos
-        
-        for (codecInfo in codecInfos) {
-            if (codecInfo.isEncoder) {
-                val types = codecInfo.supportedTypes
-                for (type in types) {
-                    if (type.startsWith("video/")) {
-                        val capabilities = codecInfo.getCapabilitiesForType(type)
-                        val colorFormats = capabilities.colorFormats
-                        
-                        // 检查是否有硬件加速支持
-                        if (colorFormats.contains(android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)) {
-                            android.util.Log.d("RecordingManager", "Found hardware encoder: ${codecInfo.name}")
-                            return true
-                        }
-                    }
-                }
-            }
-        }
-        false
-    } catch (e: Exception) {
-        android.util.Log.w("RecordingManager", "Failed to check hardware encoder support: ${e.message}")
-        false
-    }
-}
 
 private fun chooseSizeByQuality(metrics: DisplayMetrics, quality: Int): Pair<Int, Int> {
     val screenW = metrics.widthPixels

@@ -48,64 +48,6 @@ val success = RecordingManager.startRecording(activity, config) { result ->
 
 ## 核心API
 
-### CPU性能优化API
-
-#### 设置CPU优化
-```kotlin
-// 启用录制线程CPU小核绑定优化（默认启用）
-val success = SausageReplayAndroidSDK.setCpuOptimizationEnabled(true)
-if (success) {
-    Log.d("CPU", "CPU optimization enabled")
-}
-```
-
-#### 检查CPU优化状态
-```kotlin
-// 检查当前CPU优化状态
-val isEnabled = SausageReplayAndroidSDK.isCpuOptimizationEnabled()
-Log.d("CPU", "CPU optimization enabled: $isEnabled")
-```
-
-### 动态质量调节API
-
-#### 设置动态质量调节
-```kotlin
-// 启用动态质量调节（默认启用）
-val success = SausageReplayAndroidSDK.setDynamicQualityEnabled(true)
-if (success) {
-    Log.d("Quality", "Dynamic quality adjustment enabled")
-}
-```
-
-#### 检查动态质量调节状态
-```kotlin
-// 检查当前动态质量调节状态
-val isEnabled = SausageReplayAndroidSDK.isDynamicQualityEnabled()
-Log.d("Quality", "Dynamic quality enabled: $isEnabled")
-```
-
-#### 获取当前质量系数
-```kotlin
-// 获取当前质量降低系数
-val qualityReduction = SausageReplayAndroidSDK.getCurrentQualityReduction()
-Log.d("Quality", "Current quality: ${(qualityReduction * 100).toInt()}%")
-```
-
-#### 手动触发性能检查
-```kotlin
-// 手动触发性能检查和质量调节
-val success = SausageReplayAndroidSDK.triggerPerformanceCheck()
-if (success) {
-    Log.d("Performance", "Performance check triggered")
-}
-```
-
-**优化特性说明**：
-- **CPU优化**: 录制线程使用最低优先级，优先使用小核
-- **硬件编码**: 自动检测并使用H.264/HEVC硬件编码器，减少CPU负担
-- **动态质量**: 根据系统性能自动调整录制质量，确保游戏流畅运行
-- **性能监控**: 每5秒自动检查性能，智能降级和恢复质量
-
 ### SausageReplayAndroidSDK
 
 #### 初始化方法
