@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sausage Replay SDK 录制文件路径 -->
+    <external-files-path name="replay_files" path="Movies/replay/" />
+    <external-files-path name="replay_cache" path="Movies/replay/cache/" />
+</paths>
+
+

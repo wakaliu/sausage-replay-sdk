@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+<LinearLayout
+    android:orientation="vertical"
+    android:gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="12dp">
+
+    <!-- 性能监控区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="#F0F0F0"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp">
+        
+            
+        <TextView
+            android:id="@+id/tv_fps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="FPS: --"
+            android:textSize="12sp"
+            android:gravity="center" />
+            
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#CCCCCC" />
+            
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="状态: IDLE"
+            android:textSize="12sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- 录制控制按钮组 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        
+        <Button
+            android:id="@+id/btn_start"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="开始录制"
+            android:layout_marginEnd="8dp" />
+            
+        <Button
+            android:id="@+id/btn_stop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="停止录制" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="8dp" />
+
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        
+        <Button
+            android:id="@+id/btn_preset_basic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="基础(720p30)"
+            android:layout_marginEnd="8dp" />
+            
+        <Button
+            android:id="@+id/btn_preset_standard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="标准(1080p30)"
+            android:layout_marginEnd="8dp" />
+            
+        <Button
+            android:id="@+id/btn_preset_smooth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="流畅(720p60)"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_preset_high_fps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="高帧(1080p60)"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_preset_ultra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="超清(1440p)" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="8dp" />
+
+    <!-- 工具按钮组 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        
+        <Button
+            android:id="@+id/btn_open"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="打开目录"
+            android:layout_marginEnd="8dp" />
+            
+        <Button
+            android:id="@+id/btn_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="详细状态"
+            android:layout_marginEnd="8dp" />
+            
+    </LinearLayout>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="8dp" />
+
+
+    <!-- 音频测试区域 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#E8F4FD"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="音频测试"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+            
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+            
+            <Button
+                android:id="@+id/btn_play_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="播放音频"
+                android:textSize="12sp"
+                android:layout_marginEnd="4dp" />
+                
+            <Button
+                android:id="@+id/btn_stop_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="停止音频"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="8dp" />
+
+    <Button
+        android:id="@+id/btn_reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="重置状态" />
+
+</LinearLayout>
+
+</ScrollView>
+

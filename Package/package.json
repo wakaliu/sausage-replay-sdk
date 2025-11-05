@@ -1,0 +1,36 @@
+{
+  "name": "com.funny.sausage-recorder-sdk",
+  "version": "1.0.0",
+  "displayName": "Sausage Recorder SDK",
+  "description": "Android和iOS屏幕录制SDK的Unity集成插件，提供高质量的屏幕录制功能，支持设备档位自适应、统一日志控制、文件MD5校验等特性。",
+  "unity": "2022.3",
+  "keywords": [
+    "recording",
+    "screen-capture",
+    "android",
+    "ios",
+    "video",
+    "replay"
+  ],
+  "author": {
+    "name": "waka",
+    "email": "sausage-build33@sofunny.com",
+    "url": "https://git.tube/package/com.sofunny.sausage.recorder/-/tree/develop/Package"
+  },
+  "license": "MIT",
+  "samples": [
+    {
+      "displayName": "Basic Recording Example",
+      "description": "基础录制功能示例，展示如何使用SDK进行屏幕录制。",
+      "path": "Samples~/BasicRecording"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://git.tube/package/com.sofunny.sausage.recorder.git"
+  },
+  "bugs": {
+    "url": "https://git.tube/package/com.sofunny.sausage.recorder/-/issues"
+  },
+  "homepage": "https://git.tube/package/com.sofunny.sausage.recorder/-/tree/develop/Package"
+}

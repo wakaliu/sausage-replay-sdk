@@ -1,0 +1,242 @@
+{
+  "version": "1.0.0",
+  "videoQualityPresets": {
+    "BASIC": {
+      "name": "基础清晰度",
+      "maxResolution": {
+        "width": 1280,
+        "height": 720
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 30,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 4000000,
+        "max": 5000000,
+        "default": 4500000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 6,
+      "threadCount": 3,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 10,
+        "maxResolution": {
+          "width": 1280,
+          "height": 720
+        },
+        "maxDurationSeconds": 15
+      },
+      "ioStrategy": "SERIAL_MEDIUM_BUFFER",
+      "logLevel": "INFO",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "STANDARD": {
+      "name": "标准清晰度",
+      "maxResolution": {
+        "width": 1920,
+        "height": 1080
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 30,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 7000000,
+        "max": 9000000,
+        "default": 8000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 6,
+      "threadCount": 3,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 10,
+        "maxResolution": {
+          "width": 1280,
+          "height": 720
+        },
+        "maxDurationSeconds": 15
+      },
+      "ioStrategy": "SERIAL_MEDIUM_BUFFER",
+      "logLevel": "INFO",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "SMOOTH": {
+      "name": "流畅清晰度",
+      "maxResolution": {
+        "width": 1280,
+        "height": 720
+      },
+      "targetFps": {
+        "min": 60,
+        "max": 60,
+        "default": 60
+      },
+      "videoBitrate": {
+        "min": 6000000,
+        "max": 8000000,
+        "default": 7000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 8,
+      "threadCount": 4,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 12,
+        "maxResolution": {
+          "width": 1280,
+          "height": 720
+        },
+        "maxDurationSeconds": 20
+      },
+      "ioStrategy": "ASYNC_DOUBLE_BUFFER",
+      "logLevel": "DEBUG",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "HIGH_FPS": {
+      "name": "高帧率清晰度",
+      "maxResolution": {
+        "width": 1920,
+        "height": 1080
+      },
+      "targetFps": {
+        "min": 60,
+        "max": 60,
+        "default": 60
+      },
+      "videoBitrate": {
+        "min": 12000000,
+        "max": 16000000,
+        "default": 14000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 10,
+      "threadCount": 4,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 12,
+        "maxResolution": {
+          "width": 1920,
+          "height": 1080
+        },
+        "maxDurationSeconds": 20
+      },
+      "ioStrategy": "ASYNC_DOUBLE_BUFFER",
+      "logLevel": "DEBUG",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    },
+    "ULTRA": {
+      "name": "超高清清晰度",
+      "maxResolution": {
+        "width": 2560,
+        "height": 1440
+      },
+      "targetFps": {
+        "min": 30,
+        "max": 60,
+        "default": 30
+      },
+      "videoBitrate": {
+        "min": 18000000,
+        "max": 22000000,
+        "default": 20000000
+      },
+      "audioBitrate": {
+        "min": 128000,
+        "max": 192000,
+        "default": 128000
+      },
+      "audioSampleRate": 48000,
+      "keyFrameInterval": 1,
+      "encodingProfile": "HIGH",
+      "bufferDepth": 12,
+      "threadCount": 6,
+      "gifStrategy": {
+        "enabled": true,
+        "maxFps": 15,
+        "maxResolution": {
+          "width": 1920,
+          "height": 1080
+        },
+        "maxDurationSeconds": 30
+      },
+      "ioStrategy": "ASYNC_DOUBLE_BUFFER",
+      "logLevel": "DEBUG",
+      "adaptiveThresholds": {
+        "frameDropRate": 0.03,
+        "encodingBlockTime": 200,
+        "queueCongestionTime": 500,
+        "recoveryStableTime": 10
+      }
+    }
+  },
+  "adaptiveStrategies": {
+    "bitrateReduction": {
+      "step": 0.15,
+      "minReduction": 0.1,
+      "maxReduction": 0.3
+    },
+    "resolutionDegradation": {
+      "steps": [
+        {"width": 1920, "height": 1080},
+        {"width": 1280, "height": 720},
+        {"width": 854, "height": 480}
+      ]
+    },
+    "fpsDegradation": {
+      "steps": [60, 30, 25, 20]
+    }
+  }
+}
